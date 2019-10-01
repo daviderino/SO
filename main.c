@@ -15,7 +15,6 @@ tecnicofs* fs;
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
-// this is a comment
 int numberCommands = 0;
 int headQueue = 0;
 
