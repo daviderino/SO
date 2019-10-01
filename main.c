@@ -27,14 +27,12 @@ static void parseArgs (long argc, char* const argv[]){
     if (argc != 4) {
         fprintf(stderr, "Invalid format:\n");
         displayUsage("./tecnicofs inputfile outputfile numthreads");
-        
+
         numberThreads = (int)strtol(argv[3], NULL, 10);
     }
-    
+
     inputFile = argv[1];
     outputFile = argv[2];
-    puts(inputFile);
-    puts(outputFile);
 }
 
 int insertCommand(char* data) {
@@ -58,11 +56,9 @@ void errorParse(){
     //exit(EXIT_FAILURE);
 }
 
-void processInput(const char *inputFile){
-    FILE *file;
-	char line[MAX_INPUT_SIZE];
-
-    file = fopen(inputFile, "r");
+void processInput(){
+    FILE *file=fopen(inputFile, "r");;
+	  char line[MAX_INPUT_SIZE];
 
     if(file == NULL) {
     	fprintf(stderr, "Error: invalid file");
@@ -146,19 +142,13 @@ void applyCommands(){
 }
 
 int main(int argc, char* argv[]) {
-    FILE *outputFile;
-    
     parseArgs(argc, argv);
 
     fs = new_tecnicofs();
-    processInput(argv[1]);
-
-    outputFile = fopen(argv[2], "w");
+    processInput();
 
     applyCommands();
     print_tecnicofs_tree(outputFile, fs);
-
-    fclose(outputFile);
 
     free_tecnicofs(fs);
     exit(EXIT_SUCCESS);
