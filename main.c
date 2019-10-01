@@ -38,7 +38,7 @@ int insertCommand(char* data) {
 char* removeCommand() {
     if((numberCommands + 1)){
         numberCommands--;
-        return inputCommands[headQueue++];  
+        return inputCommands[headQueue++];
     }
     return NULL;
 }
@@ -71,15 +71,20 @@ void processInput(const char *inputFile){
         }
         switch (token) {
             case 'c':
-            	break;
+                if(numTokens != 2)
+                    errorParse();
+                if(insertCommand(line))
+                    break;
             case 'l':
-            	break;
+                if(numTokens != 2)
+                    errorParse();
+                if(insertCommand(line))
+                    break;
             case 'd':
                 if(numTokens != 2)
                     errorParse();
                 if(insertCommand(line))
                     break;
-                return;
             case '#':
                 break;
             default: { /* error */
