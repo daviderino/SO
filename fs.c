@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 int obtainNewInumber(tecnicofs* fs) {
 	int newInumber = ++(fs->nextINumber);
 	return newInumber;

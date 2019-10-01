@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <ctype.h>
+#include <pthread.h>
 #include "fs.h"
 
 #define MAX_COMMANDS 150000
@@ -13,6 +14,7 @@ tecnicofs* fs;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
+
 int numberCommands = 0;
 int headQueue = 0;
 
@@ -26,13 +28,13 @@ static void parseArgs (long argc, char* const argv[]){
         fprintf(stderr, "Invalid format:\n");
         displayUsage("./tecnicofs inputfile outputfile numthreads");
         
-        strcpy(inputFile, argv[1]);
-        strcpy(outputFile, argv[2]);
-        puts(inputFile);
-        puts(outputFile);
-        
         numberThreads = (int)strtol(argv[3], NULL, 10);
     }
+    
+    inputFile = argv[1];
+    outputFile = argv[2];
+    puts(inputFile);
+    puts(outputFile);
 }
 
 int insertCommand(char* data) {
