@@ -11,6 +11,7 @@
 
 int numberThreads = 0;
 tecnicofs* fs;
+pthread_mutex_t lock;
 
 int counter = 0;
 
@@ -105,8 +106,12 @@ void processInput(){
 }
 
 void *applyCommands(){
-    counter += 1;
-    printf("Starting process %d\n", counter);
+
+    pthread_mutex_lock(&lock);
+
+    /*counter += 1;
+    printf("Starting process %d\n", counter);*/
+
     while(numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -125,10 +130,12 @@ void *applyCommands(){
         int iNumber;
         switch (token) {
             case 'c':
+                printf("%s\n",name);
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
                 break;
             case 'l':
+                printf("%s\n",name);
                 searchResult = lookup(fs, name);
                 if(!searchResult)
                     printf("%s not found\n", name);
@@ -136,6 +143,7 @@ void *applyCommands(){
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
+                printf("%s\n",name);
                 delete(fs, name);
                 break;
             default: { /* error */
@@ -144,26 +152,23 @@ void *applyCommands(){
             }
         }
     }
-    printf("Ending process %d\n", counter);
+    /*printf("Ending process %d\n", counter);*/
 
+    pthread_mutex_unlock(&lock);
     pthread_exit(NULL);
-}
-
-void createThreadMutex() {
-    pthread_mutex_t lock;
-
-     if (pthread_mutex_init(&lock, NULL) != 0)
-        fprintf(stderr, "Error while creating a mutex\n");
-    
-    pthread_mutex_lock(&lock);
 }
 
 
 void createThreadPool() {
     pthread_t *threads;
     int i;
-
+    
     threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
+
+     if (pthread_mutex_init(&lock, NULL) != 0){
+        fprintf(stderr, "Error while creating a mutex\n");
+        
+     }
 
     for(i = 0; i < numberThreads; i++) {
         if(pthread_create(&threads[i], NULL, applyCommands, NULL) != 0) {
@@ -185,7 +190,6 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs();
     processInput();
 
-    /*createThreadMutex();*/
     createThreadPool();
     print_tecnicofs_tree(outputFile, fs);
 
