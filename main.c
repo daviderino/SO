@@ -147,7 +147,6 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs();
     processInput();
 
-    applyCommands();
     print_tecnicofs_tree(outputFile, fs);
 
     free_tecnicofs(fs);
