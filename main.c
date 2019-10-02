@@ -149,6 +149,16 @@ void *applyCommands(){
     pthread_exit(NULL);
 }
 
+void createThreadMutex() {
+    pthread_mutex_t lock;
+
+     if (pthread_mutex_init(&lock, NULL) != 0)
+        fprintf(stderr, "Error while creating a mutex\n");
+    
+    pthread_mutex_lock(&lock);
+}
+
+
 void createThreadPool() {
     pthread_t *threads;
     int i;
@@ -175,6 +185,7 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs();
     processInput();
 
+    /*createThreadMutex();*/
     createThreadPool();
     print_tecnicofs_tree(outputFile, fs);
 
