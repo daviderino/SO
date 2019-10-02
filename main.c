@@ -126,7 +126,7 @@ void applyCommands() {
         int iNumber;
         switch (token) {
             case 'c':
-                printf("Creating %s\n", name);
+                printf("Creating %s\n", name);  // TODO: Create
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
                 break;
@@ -138,6 +138,7 @@ void applyCommands() {
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
+                printf("Deleting %s\n", name); // TODO: Delete
                 delete(fs, name);
                 break;
             default: { /* error */
