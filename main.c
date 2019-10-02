@@ -12,6 +12,9 @@
 int numberThreads = 0;
 tecnicofs* fs;
 
+int counter = 0;
+
+
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
@@ -28,9 +31,9 @@ static void parseArgs (long argc, char* const argv[]){
         fprintf(stderr, "Invalid format:\n");
         displayUsage("./tecnicofs inputfile outputfile numthreads");
 
-        numberThreads = (int)strtol(argv[3], NULL, 10);
     }
 
+    numberThreads = (int)strtol(argv[3], NULL, 10);
     inputFile = argv[1];
     outputFile = argv[2];
 }
@@ -53,7 +56,7 @@ char* removeCommand() {
 
 void errorParse(){
     fprintf(stderr, "Error: command invalid\n");
-    //exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 
 void processInput(){
@@ -101,7 +104,9 @@ void processInput(){
     fclose(file);
 }
 
-void applyCommands(){
+void *applyCommands(){
+    counter += 1;
+    printf("Starting process %d\n", counter);
     while(numberCommands > 0){
         const char* command = removeCommand();
         if (command == NULL){
@@ -139,7 +144,30 @@ void applyCommands(){
             }
         }
     }
+    printf("Ending process %d\n", counter);
+
+    pthread_exit(NULL);
 }
+
+void createThreadPool() {
+    pthread_t *threads;
+    int i;
+
+    threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
+
+    for(i = 0; i < numberThreads; i++) {
+        if(pthread_create(&threads[i], NULL, applyCommands, NULL) != 0) {
+            fprintf(stderr, "Error while creating a thread\n");
+        }
+    }
+
+    for(i = 0; i < numberThreads; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            fprintf(stderr, "Error while waiting for a thread\n");
+        }
+    }
+}
+
 
 int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
@@ -147,7 +175,7 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs();
     processInput();
 
-    applyCommands();
+    createThreadPool();
     print_tecnicofs_tree(outputFile, fs);
 
     free_tecnicofs(fs);
