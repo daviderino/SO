@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tecnicofs",
-            "args": ["inputs/test1.txt", "output.txt", "5"],
+            "args": ["inputs/test4.txt", "output.txt", "5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
