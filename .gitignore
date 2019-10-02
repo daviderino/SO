@@ -1,0 +1,11 @@
+.idea/
+.vscode/
+cmake-build-debug/
+CMakeLists.txt
+tecnicofs
+main.o
+lib/bst.o
+fs.o
+output.txt
+compile_commands.json
+
