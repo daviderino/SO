@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <math.h>
 #include "fs.h"
 
 #define MAX_COMMANDS 150000
@@ -13,14 +14,13 @@ int numberThreads = 0;
 tecnicofs* fs;
 pthread_mutex_t lock;
 
-int counter = 0;
-
-
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
 int numberCommands = 0;
 int headQueue = 0;
+
+int ratio = 0;
 
 static void displayUsage (const char* appName){
     printf("Usage: %s\n", appName);
@@ -62,7 +62,7 @@ void errorParse(){
 
 void processInput(){
     FILE *file=fopen(inputFile, "r");;
-	  char line[MAX_INPUT_SIZE];
+	char line[MAX_INPUT_SIZE];
 
     if(file == NULL) {
     	fprintf(stderr, "Error: invalid file");
@@ -105,17 +105,13 @@ void processInput(){
     fclose(file);
 }
 
-void *applyCommands(){
-
+void applyCommands() {
     pthread_mutex_lock(&lock);
 
-    /*counter += 1;
-    printf("Starting process %d\n", counter);*/
-
-    while(numberCommands > 0){
+    if(numberCommands >  0) {
         const char* command = removeCommand();
-        if (command == NULL){
-            continue;
+        if (command == NULL) {
+            return;
         }
 
         char token;
@@ -130,12 +126,11 @@ void *applyCommands(){
         int iNumber;
         switch (token) {
             case 'c':
-                printf("%s\n",name);
+                printf("Creating %s\n", name);
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
                 break;
             case 'l':
-                printf("%s\n",name);
                 searchResult = lookup(fs, name);
                 if(!searchResult)
                     printf("%s not found\n", name);
@@ -143,7 +138,6 @@ void *applyCommands(){
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
-                printf("%s\n",name);
                 delete(fs, name);
                 break;
             default: { /* error */
@@ -152,9 +146,12 @@ void *applyCommands(){
             }
         }
     }
-    /*printf("Ending process %d\n", counter);*/
 
     pthread_mutex_unlock(&lock);
+}
+
+void *threadApplyCommands() {
+    applyCommands();
     pthread_exit(NULL);
 }
 
@@ -162,23 +159,25 @@ void *applyCommands(){
 void createThreadPool() {
     pthread_t *threads;
     int i;
-    
+
     threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
 
-     if (pthread_mutex_init(&lock, NULL) != 0){
+    if (pthread_mutex_init(&lock, NULL) != 0){
         fprintf(stderr, "Error while creating a mutex\n");
         
-     }
-
-    for(i = 0; i < numberThreads; i++) {
-        if(pthread_create(&threads[i], NULL, applyCommands, NULL) != 0) {
-            fprintf(stderr, "Error while creating a thread\n");
-        }
     }
 
-    for(i = 0; i < numberThreads; i++) {
-        if (pthread_join(threads[i], NULL) != 0) {
-            fprintf(stderr, "Error while waiting for a thread\n");
+    while(numberCommands > 0) {
+        for(i = 0; i < numberThreads && numberCommands > 0; i++) {
+            if(pthread_create(&threads[i], NULL, threadApplyCommands, NULL) != 0) {
+                fprintf(stderr, "Error while creating a thread\n");
+            }
+        }
+
+        for(i = 0; i < numberThreads && numberCommands > 0; i++) {
+            if (pthread_join(threads[i], NULL) != 0) {
+                fprintf(stderr, "Error while waiting for a thread\n");
+            }
         }
     }
 }
