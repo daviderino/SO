@@ -14,6 +14,8 @@ int numberThreads = 0;
 tecnicofs* fs;
 pthread_mutex_t lock;
 
+/*int counter=0;*/
+
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
@@ -122,6 +124,9 @@ void applyCommands() {
             exit(EXIT_FAILURE);
         }
 
+        /*counter += 1;
+        printf("\n Thread %d started\n", counter);*/
+
         int searchResult;
         int iNumber;
         switch (token) {
@@ -147,6 +152,8 @@ void applyCommands() {
             }
         }
     }
+
+    /*printf("\n Threads %d finished\n", counter);*/
 
     pthread_mutex_unlock(&lock);
 }
@@ -181,6 +188,8 @@ void createThreadPool() {
             }
         }
     }
+
+   free(threads);
 }
 
 
