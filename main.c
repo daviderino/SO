@@ -14,15 +14,11 @@ int numberThreads = 0;
 tecnicofs* fs;
 pthread_mutex_t lock;
 
-/*int counter=0;*/
-
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
 int numberCommands = 0;
 int headQueue = 0;
-
-int ratio = 0;
 
 static void displayUsage (const char* appName){
     printf("Usage: %s\n", appName);
@@ -107,10 +103,8 @@ void processInput(){
     fclose(file);
 }
 
-// IF DEF
-
 void applyCommands() {
-    pthread_mutex_lock(&lock);
+   // pthread_mutex_lock(&lock);
 
     if(numberCommands >  0) {
         const char* command = removeCommand();
@@ -130,7 +124,7 @@ void applyCommands() {
         int iNumber;
         switch (token) {
             case 'c':
-                printf("Creating %s\n", name);  // TODO: Create
+                printf("Creating %s\n", name);  // TODO: Delete this line
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
                 break;
@@ -142,7 +136,7 @@ void applyCommands() {
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
-                printf("Deleting %s\n", name); // TODO: Delete
+                printf("Deleting %s\n", name); // TODO: Delete this line
                 delete(fs, name);
                 break;
             default: { /* error */
@@ -152,13 +146,14 @@ void applyCommands() {
         }
     }
 
-    pthread_mutex_unlock(&lock);
+   // pthread_mutex_unlock(&lock);
 }
 
 
 void *threadApplyCommands() {
+
     while(numberCommands > 0) {
-        applyCommands();    
+        applyCommands();
     }
     pthread_exit(NULL);
 }
@@ -187,7 +182,6 @@ void createThreadPool() {
     }
     
     free(threads);
-    pthread_exit(NULL);
 }
 
 
