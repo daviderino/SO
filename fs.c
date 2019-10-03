@@ -15,6 +15,7 @@ tecnicofs* new_tecnicofs(){
 		exit(EXIT_FAILURE);
 	}
 	fs->bstRoot = NULL;
+	fs->nextINumber= 0;
 	return fs;
 }
 
