@@ -166,13 +166,12 @@ void *threadApplyCommands() {
 
 void createThreadPool() {
     pthread_t *threads;
-    int i;
+    int i, j;
 
     threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
 
     if (pthread_mutex_init(&lock, NULL) != 0){
         fprintf(stderr, "Error while creating a mutex\n");
-        
     }
 
     while(numberCommands > 0) {
@@ -182,14 +181,15 @@ void createThreadPool() {
             }
         }
 
-        for(i = 0; i < numberThreads && numberCommands > 0; i++) {
-            if (pthread_join(threads[i], NULL) != 0) {
+        for(j = 0; j < i; j++) {
+            if (pthread_join(threads[j], NULL) != 0) {
                 fprintf(stderr, "Error while waiting for a thread\n");
             }
         }
     }
-
-   free(threads);
+    
+    free(threads);
+    pthread_exit(NULL);
 }
 
 
