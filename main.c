@@ -107,6 +107,8 @@ void processInput(){
     fclose(file);
 }
 
+// IF DEF
+
 void applyCommands() {
     pthread_mutex_lock(&lock);
 
@@ -123,9 +125,6 @@ void applyCommands() {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
         }
-
-        /*counter += 1;
-        printf("\n Thread %d started\n", counter);*/
 
         int searchResult;
         int iNumber;
@@ -153,13 +152,14 @@ void applyCommands() {
         }
     }
 
-    /*printf("\n Threads %d finished\n", counter);*/
-
     pthread_mutex_unlock(&lock);
 }
 
+
 void *threadApplyCommands() {
-    applyCommands();
+    while(numberCommands > 0) {
+        applyCommands();    
+    }
     pthread_exit(NULL);
 }
 
@@ -172,24 +172,22 @@ void createThreadPool() {
 
     if (pthread_mutex_init(&lock, NULL) != 0){
         fprintf(stderr, "Error while creating a mutex\n");
-        
     }
 
-    while(numberCommands > 0) {
-        for(i = 0; i < numberThreads && numberCommands > 0; i++) {
-            if(pthread_create(&threads[i], NULL, threadApplyCommands, NULL) != 0) {
-                fprintf(stderr, "Error while creating a thread\n");
-            }
-        }
-
-        for(i = 0; i < numberThreads && numberCommands > 0; i++) {
-            if (pthread_join(threads[i], NULL) != 0) {
-                fprintf(stderr, "Error while waiting for a thread\n");
-            }
+    for(i = 0; i < numberThreads; i++) {
+        if(pthread_create(&threads[i], NULL, threadApplyCommands, NULL) != 0) {
+            fprintf(stderr, "Error while creating a thread\n");
         }
     }
 
-   free(threads);
+    for(i = 0; i < numberThreads; i++) {
+        if (pthread_join(threads[i], NULL) != 0) {
+            fprintf(stderr, "Error while waiting for a thread\n");
+        }
+    }
+    
+    free(threads);
+    pthread_exit(NULL);
 }
 
 
