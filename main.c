@@ -223,3 +223,9 @@ int main(int argc, char* argv[]) {
 
     exit(EXIT_SUCCESS);
 }
+
+
+/* 
+    Mesmo lock para as coisas no switch
+    Fazer uma funcao para dar lock e outra para dar unlock. Usar ai as macros
+*/
