@@ -4,12 +4,49 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-
         {
-            "name": "gcc build and debug active file",
+            "name": "RWLock",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tecnicofs",
+            "program": "${workspaceFolder}/tecnicofs-rwlock",
+            "args": ["inputs/test2.txt", "output.txt", "5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "Mutex",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/tecnicofs-mutex",
+            "args": ["inputs/test2.txt", "output.txt", "5"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "NoSync",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/tecnicofs-nosync",
             "args": ["inputs/test2.txt", "output.txt", "5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
