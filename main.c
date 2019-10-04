@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <math.h>
+#include <sys/time.h>
 #include "fs.h"
 
 #define MAX_COMMANDS 150000
@@ -194,8 +195,18 @@ void createThreadPool() {
     free(threads);
 }
 
+void print_time(double t) {
+    FILE *file= fopen(outputFile, "a");
+    fprintf(file, "Program executed in %g seconds\n", t);
+    printf( "Program executed in %g seconds\n", t); // delete later
+    fclose(file);
+}
 
 int main(int argc, char* argv[]) {
+    struct timeval start, end;
+    double t;
+    gettimeofday(&start, NULL);
+
     parseArgs(argc, argv);
 
     fs = new_tecnicofs();
@@ -205,5 +216,10 @@ int main(int argc, char* argv[]) {
     print_tecnicofs_tree(outputFile, fs);
 
     free_tecnicofs(fs);
+    gettimeofday(&end, NULL);
+
+    t = (end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec)/1000000.0);
+    print_time(t);
+
     exit(EXIT_SUCCESS);
 }
