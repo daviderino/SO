@@ -104,49 +104,61 @@ void processInput(){
 }
 
 void applyCommands() {
-   // pthread_mutex_lock(&lock);
+    
+    pthread_mutex_lock(&lock);
+    const char* command = removeCommand();
+    pthread_mutex_unlock(&lock);
 
-    if(numberCommands >  0) {
-        const char* command = removeCommand();
-        if (command == NULL) {
-            return;
-        }
-
-        char token;
-        char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(command, "%c %s", &token, name);
-        if (numTokens != 2) {
-            fprintf(stderr, "Error: invalid command in Queue\n");
-            exit(EXIT_FAILURE);
-        }
-
-        int searchResult;
-        int iNumber;
-        switch (token) {
-            case 'c':
-                printf("Creating %s\n", name);  // TODO: Delete this line
-                iNumber = obtainNewInumber(fs);
-                create(fs, name, iNumber);
-                break;
-            case 'l':
-                searchResult = lookup(fs, name);
-                if(!searchResult)
-                    printf("%s not found\n", name);
-                else
-                    printf("%s found with inumber %d\n", name, searchResult);
-                break;
-            case 'd':
-                printf("Deleting %s\n", name); // TODO: Delete this line
-                delete(fs, name);
-                break;
-            default: { /* error */
-                fprintf(stderr, "Error: command to apply\n");
-                exit(EXIT_FAILURE);
-            }
-        }
+    if (command == NULL) {
+        return;
     }
 
-   // pthread_mutex_unlock(&lock);
+    char token;
+    char name[MAX_INPUT_SIZE];
+
+    pthread_mutex_lock(&lock);
+    int numTokens = sscanf(command, "%c %s", &token, name);
+    pthread_mutex_unlock(&lock);
+
+    if (numTokens != 2) {
+        fprintf(stderr, "Error: invalid command in Queue\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int searchResult;
+    int iNumber;
+    switch (token) {
+        case 'c':
+            pthread_mutex_lock(&lock);
+            printf("Creating %s\n", name);  // TODO: Delete this line
+            iNumber = obtainNewInumber(fs);
+            create(fs, name, iNumber);
+            pthread_mutex_unlock(&lock);
+            break;
+
+        case 'l':
+            pthread_mutex_lock(&lock);
+            searchResult = lookup(fs, name);
+            if(!searchResult)
+                printf("%s not found\n", name);
+            else
+                printf("%s found with inumber %d\n", name, searchResult);
+            pthread_mutex_unlock(&lock);
+            break;
+
+        case 'd':
+            pthread_mutex_lock(&lock);
+            printf("Deleting %s\n", name); // TODO: Delete this line
+            delete(fs, name);
+            pthread_mutex_unlock(&lock);
+            break;
+
+        default: { /* error */
+            fprintf(stderr, "Error: command to apply\n");
+            exit(EXIT_FAILURE);
+        }
+    }   
+
 }
 
 
