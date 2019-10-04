@@ -46,7 +46,7 @@ int insertCommand(char* data) {
 }
 
 char* removeCommand() {
-    if((numberCommands + 1)){
+    if((numberCommands > 0)){
         numberCommands--;
         return inputCommands[headQueue++];
     }
