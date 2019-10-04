@@ -7,4 +7,9 @@ lib/bst.o
 fs.o
 output.txt
 compile_commands.json
-
+tecnicofs-mutex
+tecnicofs-nosync
+tecnicofs-rwlock
+main_mutex.o
+main_nosync.o
+main_rwlock.o
