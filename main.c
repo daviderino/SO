@@ -13,13 +13,46 @@
 
 int numberThreads = 0;
 tecnicofs* fs;
-pthread_mutex_t lock;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
 
 int numberCommands = 0;
 int headQueue = 0;
+
+
+int lockInit() {
+	#ifdef MUTEX
+		return pthread_mutex_init(&fs->mutexlock, NULL);
+	#elif RWLOCK
+		return pthread_rwlock_init(&fs->rwlock, NULL);
+	#endif
+	return 1;
+}
+
+void lockWrite() {
+	#ifdef MUTEX
+		pthread_mutex_lock(&fs->mutexlock);
+	#elif RWLOCK
+		pthread_rwlock_wrlock(&fs->rwlock);
+	#endif
+}
+
+void lockRead() {
+	#ifdef MUTEX
+		pthread_mutex_lock(&fs->mutexlock);
+	#elif RWLOCK
+		pthread_rwlock_rdlock(&fs->rwlock);
+	#endif
+}
+
+void unlock() {
+	#ifdef MUTEX
+		pthread_mutex_unlock(&fs->mutexlock);
+	#elif RWLOCK
+		pthread_rwlock_unlock(&fs->rwlock);
+	#endif
+}
 
 static void displayUsage (const char* appName){
     printf("Usage: %s\n", appName);
@@ -106,9 +139,9 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-        pthread_mutex_lock(&lock);
+        lockRead();
         const char* command = removeCommand();
-        pthread_mutex_unlock(&lock);
+		unlock();
 
         if (command == NULL) {
             return;
@@ -117,9 +150,8 @@ void applyCommands() {
         char token;
         char name[MAX_INPUT_SIZE];
 
-        pthread_mutex_lock(&lock);
+        // acho que aqui não e preciso
         int numTokens = sscanf(command, "%c %s", &token, name);
-        pthread_mutex_unlock(&lock);
 
         if (numTokens != 2) {
             fprintf(stderr, "Error: invalid command in Queue\n");
@@ -130,28 +162,28 @@ void applyCommands() {
         int iNumber;
         switch (token) {
             case 'c':
-                pthread_mutex_lock(&lock);
+                lockWrite();
                 printf("Creating %s\n", name);  // TODO: Delete this line
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
-                pthread_mutex_unlock(&lock);
+               	unlock();
                 break;
 
             case 'l':
-                pthread_mutex_lock(&lock);
+                lockRead();
                 searchResult = lookup(fs, name);
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
                     printf("%s found with inumber %d\n", name, searchResult);
-                pthread_mutex_unlock(&lock);
+				unlock();
                 break;
 
             case 'd':
-                pthread_mutex_lock(&lock);
+                lockWrite();
                 printf("Deleting %s\n", name); // TODO: Delete this line
                 delete(fs, name);
-                pthread_mutex_unlock(&lock);
+                unlock();
                 break;
 
             default: { /* error */
@@ -176,9 +208,9 @@ void createThreadPool() {
 
     threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
 
-    if (pthread_mutex_init(&lock, NULL) != 0){
+	if(lockInit() != 0) {
         fprintf(stderr, "Error while creating a mutex\n");
-    }
+	}
 
     for(i = 0; i < numberThreads; i++) {
         if(pthread_create(&threads[i], NULL, threadApplyCommands, NULL) != 0) {
@@ -188,7 +220,7 @@ void createThreadPool() {
 
     for(i = 0; i < numberThreads; i++) {
         if (pthread_join(threads[i], NULL) != 0) {
-            fprintf(stderr, "Error while waiting for a thread\n");
+            fprintf(stderr, "Error while joining a thread\n");
         }
     }
     
@@ -223,9 +255,3 @@ int main(int argc, char* argv[]) {
 
     exit(EXIT_SUCCESS);
 }
-
-
-/* 
-    Mesmo lock para as coisas no switch
-    Fazer uma funcao para dar lock e outra para dar unlock. Usar ai as macros
-*/
