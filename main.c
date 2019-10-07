@@ -31,27 +31,33 @@ int lockInit() {
 }
 
 void lockWrite() {
-	#ifdef MUTEX
-		pthread_mutex_lock(&fs->mutexlock);
-	#elif RWLOCK
+    #if RWLOCK
 		pthread_rwlock_wrlock(&fs->rwlock);
 	#endif
 }
 
 void lockRead() {
-	#ifdef MUTEX
-		pthread_mutex_lock(&fs->mutexlock);
-	#elif RWLOCK
+    #if RWLOCK
 		pthread_rwlock_rdlock(&fs->rwlock);
 	#endif
 }
 
-void unlock() {
+void lockMutex() {
+    #ifdef MUTEX
+        pthread_mutex_lock(&fs->mutexlock);
+    #endif
+}
+
+void unlockMutex() {
 	#ifdef MUTEX
 		pthread_mutex_unlock(&fs->mutexlock);
-	#elif RWLOCK
-		pthread_rwlock_unlock(&fs->rwlock);
 	#endif
+}
+
+void unlockRWLock() {
+    #ifdef RWLOCK
+		pthread_rwlock_unlock(&fs->rwlock);
+    #endif
 }
 
 static void displayUsage (const char* appName){
@@ -139,6 +145,7 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
+        lockMutex();
         lockRead();
         const char* command = removeCommand();
 		unlock();
