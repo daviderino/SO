@@ -150,7 +150,6 @@ void applyCommands() {
         char token;
         char name[MAX_INPUT_SIZE];
 
-        // acho que aqui não e preciso
         int numTokens = sscanf(command, "%c %s", &token, name);
 
         if (numTokens != 2) {
@@ -229,8 +228,8 @@ void createThreadPool() {
 
 void print_time(double t) {
     FILE *file= fopen(outputFile, "a");
-    fprintf(file, "Program executed in %g seconds\n", t);
-    printf( "Program executed in %g seconds\n", t); // delete later
+    fprintf(file, "Program executed in %.4f seconds\n", t);
+    printf( "Program executed in %.4f seconds\n", t); // delete later
     fclose(file);
 }
 
