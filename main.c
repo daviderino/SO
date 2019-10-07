@@ -27,7 +27,7 @@ int lockInit() {
 	#elif RWLOCK
 		return pthread_rwlock_init(&fs->rwlock, NULL);
 	#endif
-	return 1;
+	return 0;
 }
 
 void lockWrite() {
@@ -148,12 +148,14 @@ void applyCommands() {
         lockMutex();
         lockRead();
         const char* command = removeCommand();
-		unlock();
-
+        unlockRWLock();
+        unlockMutex(); 
+        
+        // Da erro porque aqui da return depois de fazer lock
         if (command == NULL) {
             return;
         }
-
+   
         char token;
         char name[MAX_INPUT_SIZE];
 
@@ -163,36 +165,44 @@ void applyCommands() {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
         }
-
+     
         int searchResult;
         int iNumber;
         switch (token) {
             case 'c':
+                lockMutex();
                 lockWrite();
-                printf("Creating %s\n", name);  // TODO: Delete this line
+                printf("Creating %s\n", name);  // Delete this line
                 iNumber = obtainNewInumber(fs);
                 create(fs, name, iNumber);
-               	unlock();
+                unlockRWLock();
+                unlockMutex();
                 break;
 
             case 'l':
+                lockMutex();
                 lockRead();
                 searchResult = lookup(fs, name);
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
                     printf("%s found with inumber %d\n", name, searchResult);
-				unlock();
+                unlockRWLock();
+                unlockMutex();
                 break;
 
             case 'd':
+                lockMutex();
                 lockWrite();
-                printf("Deleting %s\n", name); // TODO: Delete this line
+                printf("Deleting %s\n", name); // Delete this line
                 delete(fs, name);
-                unlock();
+                unlockRWLock();
+                unlockMutex();
                 break;
 
             default: { /* error */
+                unlockRWLock();
+                unlockMutex(); 
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
             }
@@ -200,22 +210,24 @@ void applyCommands() {
     }
 }
 
-
 void *threadApplyCommands() {
-
     applyCommands();
     pthread_exit(NULL);
 }
-
 
 void createThreadPool() {
     pthread_t *threads;
     int i;
 
+    #if !defined(MUTEX) && !defined(RWLOCK)
+        numberThreads = 1;
+    #endif
+
+
     threads = (pthread_t*)malloc(sizeof(pthread_t) * numberThreads);
 
 	if(lockInit() != 0) {
-        fprintf(stderr, "Error while creating a mutex\n");
+        fprintf(stderr, "Error while creating a lock\n");
 	}
 
     for(i = 0; i < numberThreads; i++) {

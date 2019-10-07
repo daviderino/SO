@@ -39,7 +39,7 @@ int lookup(tecnicofs* fs, char *name){
 }
 
 void print_tecnicofs_tree(char * title, tecnicofs *fs){
-	FILE *file= fopen(title, "a");
+	FILE *file= fopen(title, "w");
 	print_tree(file, fs->bstRoot);
 
 	fclose(file);
