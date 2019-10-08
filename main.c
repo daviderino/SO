@@ -23,7 +23,6 @@ char *inputFile, *outputFile;
 int numberCommands = 0;
 int headQueue = 0;
 
-
 int lockInit() {
 	#ifdef MUTEX
         int a, b;
@@ -103,7 +102,6 @@ static void parseArgs (long argc, char* const argv[]){
     if (argc != 4) {
         fprintf(stderr, "Invalid format:\n");
         displayUsage("./tecnicofs inputfile outputfile numthreads");
-
     }
 
     numberThreads = (int)strtol(argv[3], NULL, 10);
