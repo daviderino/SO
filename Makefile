@@ -42,5 +42,11 @@ clean:
 	@echo Cleaning...
 	rm -f lib/*.o *.o tecnicofs-nosync tecnicofs-mutex tecnicofs-rwlock
 
-run: tecnicofs
-	./tecnicofs-nosync
+run-nosync: tecnicofs-nosync
+	./tecnicofs-nosync inputs/test3.txt output.txt 4
+
+run-mutex: tecnicofs-mutex
+	./tecnicofs-mutex inputs/test3.txt output.txt 4
+
+run-rwlock: tecnicofs-rwlock
+	./tecnicofs-rwlock inputs/test3.txt output.txt 4
