@@ -149,10 +149,9 @@ void applyCommands() {
         lockRead();
         const char* command = removeCommand();
         unlockRWLock();
-        unlockMutex(); 
         
-        // Da erro porque aqui da return depois de fazer lock
         if (command == NULL) {
+            unlockMutex();
             return;
         }
    
@@ -165,15 +164,18 @@ void applyCommands() {
             fprintf(stderr, "Error: invalid command in Queue\n");
             exit(EXIT_FAILURE);
         }
-     
+
+        if(token!='c')
+            unlockMutex();
+
         int searchResult;
         int iNumber;
         switch (token) {
             case 'c':
-                lockMutex();
                 lockWrite();
                 printf("Creating %s\n", name);  // Delete this line
                 iNumber = obtainNewInumber(fs);
+                printf("%d ",iNumber);
                 create(fs, name, iNumber);
                 unlockRWLock();
                 unlockMutex();
@@ -201,8 +203,6 @@ void applyCommands() {
                 break;
 
             default: { /* error */
-                unlockRWLock();
-                unlockMutex(); 
                 fprintf(stderr, "Error: command to apply\n");
                 exit(EXIT_FAILURE);
             }
