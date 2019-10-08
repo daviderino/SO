@@ -6,12 +6,13 @@
     "configurations": [
 
 
+
         {
             "name": "RWLock",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tecnicofs-rwlock",
-            "args": ["inputs/test4.txt", "output.txt", "15"],
+            "args": ["inputs/test69.txt", "output.txt", "15"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -30,7 +31,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tecnicofs-mutex",
-            "args": ["inputs/test4.txt", "output.txt", "15"],
+            "args": ["inputs/test69.txt", "output.txt", "15"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
