@@ -11,6 +11,9 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
+#define COMMAND "command"
+#define OPERATION "operation"
+
 int numberThreads = 0;
 tecnicofs* fs;
 
@@ -23,40 +26,71 @@ int headQueue = 0;
 
 int lockInit() {
 	#ifdef MUTEX
-		return pthread_mutex_init(&fs->mutexlock, NULL);
+        int a, b;
+        a = pthread_mutex_init(&fs->mutexlockcommand, NULL);
+        b = pthread_mutex_init(&fs->mutexlockoperation, NULL);
+		return a || b;
 	#elif RWLOCK
-		return pthread_rwlock_init(&fs->rwlock, NULL);
+        int a, b;
+        a = pthread_rwlock_init(&fs->rwlockcommand, NULL);
+        b = pthread_rwlock_init(&fs->rwlockoperation, NULL);
+		return a || b;
 	#endif
 	return 0;
 }
 
-void lockWrite() {
+void lockWrite(const char *lock) {
     #if RWLOCK
-		pthread_rwlock_wrlock(&fs->rwlock);
+        if(!strcmp(lock, COMMAND)) {
+		    pthread_rwlock_wrlock(&fs->rwlockcommand);
+        }
+        else if (!strcmp(lock, OPERATION)) {
+        	pthread_rwlock_wrlock(&fs->rwlockoperation);
+        }
 	#endif
 }
 
-void lockRead() {
+void lockRead(const char *lock) {
     #if RWLOCK
-		pthread_rwlock_rdlock(&fs->rwlock);
+        if(!strcmp(lock, COMMAND)) {
+		    pthread_rwlock_rdlock(&fs->rwlockcommand);
+        }
+        else if (!strcmp(lock, OPERATION)) {
+        	pthread_rwlock_rdlock(&fs->rwlockoperation);
+        }
 	#endif
 }
 
-void lockMutex() {
+void lockMutex(const char *lock) {
     #ifdef MUTEX
-        pthread_mutex_lock(&fs->mutexlock);
+        if(!strcmp(lock, COMMAND)) {
+		    pthread_mutex_lock(&fs->mutexlockcommand);
+        }
+        else if (!strcmp(lock, OPERATION)) {
+        	pthread_mutex_lock(&fs->mutexlockoperation);
+        }
     #endif
 }
 
-void unlockMutex() {
+void unlockMutex(const char *lock) {
 	#ifdef MUTEX
-		pthread_mutex_unlock(&fs->mutexlock);
+        if(!strcmp(lock, COMMAND)) {
+		    pthread_mutex_unlock(&fs->mutexlockcommand);
+        }
+        else if (!strcmp(lock, OPERATION)) {
+		    pthread_mutex_unlock(&fs->mutexlockoperation);
+        }
 	#endif
 }
 
-void unlockRWLock() {
+void unlockRWLock(const char *lock) {
     #ifdef RWLOCK
-		pthread_rwlock_unlock(&fs->rwlock);
+        if(!strcmp(lock, COMMAND)) {
+		    pthread_rwlock_unlock(&fs->rwlockcommand);
+        }
+        else if (!strcmp(lock, OPERATION)) {
+		    pthread_rwlock_unlock(&fs->rwlockoperation);
+        }
     #endif
 }
 
@@ -145,13 +179,13 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-        lockMutex();
-        lockWrite();
+        lockMutex("command");
+        lockRead("command");
         const char* command = removeCommand();
         
         if (command == NULL) {
-            unlockRWLock();
-            unlockMutex();
+            unlockRWLock("command");
+            unlockMutex("command");
             return;
         }
    
@@ -166,8 +200,8 @@ void applyCommands() {
         }
 
         if(token != 'c'){
-            unlockRWLock();
-            unlockMutex();
+            unlockRWLock("command");
+            unlockMutex("command");
         }
 
         int searchResult;
@@ -176,31 +210,34 @@ void applyCommands() {
             case 'c':
                 printf("Creating %s\n", name);  // Delete this line
                 iNumber = obtainNewInumber(fs);
-                printf("%d ",iNumber);
+                unlockRWLock("command");
+                unlockMutex("command");
+                lockMutex("operation");
+                lockWrite("operation");             
                 create(fs, name, iNumber);
-                unlockRWLock();
-                unlockMutex();
+                unlockRWLock("operation");
+                unlockMutex("operation");
                 break;
 
-            case 'l':
-                lockMutex();
-                lockRead();
+             case 'l':
+                lockMutex("operation");
+                lockRead("operation");
                 searchResult = lookup(fs, name);
+                unlockRWLock("operation");
+                unlockMutex("operation");
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
                     printf("%s found with inumber %d\n", name, searchResult);
-                unlockRWLock();
-                unlockMutex();
                 break;
 
             case 'd':
-                lockMutex();
-                lockWrite();
+                lockMutex("operation");
+                lockWrite("operation");
                 printf("Deleting %s\n", name); // Delete this line
                 delete(fs, name);
-                unlockRWLock();
-                unlockMutex();
+                unlockRWLock("operation");
+                unlockMutex("operation");
                 break;
 
             default: { /* error */

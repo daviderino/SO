@@ -6,8 +6,10 @@
 typedef struct tecnicofs {
     node* bstRoot;
     int nextINumber;
-	pthread_mutex_t mutexlock;
-	pthread_rwlock_t rwlock;
+	pthread_mutex_t mutexlockcommand;
+    pthread_mutex_t mutexlockoperation;
+	pthread_rwlock_t rwlockcommand;
+    pthread_rwlock_t rwlockoperation;
 } tecnicofs;
 
 int obtainNewInumber(tecnicofs* fs);
