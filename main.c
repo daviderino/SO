@@ -41,10 +41,14 @@ int lockInit() {
 void lockWrite(const char *lock) {
     #if RWLOCK
         if(!strcmp(lock, COMMAND)) {
-		    pthread_rwlock_wrlock(&fs->rwlockcommand);
+            if(pthread_rwlock_wrlock(&fs->rwlockcommand) != 0 ) {
+                printf("Error while RW Locking (wr)");
+            }
         }
         else if (!strcmp(lock, OPERATION)) {
-        	pthread_rwlock_wrlock(&fs->rwlockoperation);
+        	if(pthread_rwlock_wrlock(&fs->rwlockoperation)){
+                printf("Error while RW Locking (wr)");
+            }
         }
 	#endif
 }
@@ -52,10 +56,14 @@ void lockWrite(const char *lock) {
 void lockRead(const char *lock) {
     #if RWLOCK
         if(!strcmp(lock, COMMAND)) {
-		    pthread_rwlock_rdlock(&fs->rwlockcommand);
+		    if(pthread_rwlock_rdlock(&fs->rwlockcommand) != 0) {
+                printf("Error while RW Locking (rd)");
+            }
         }
         else if (!strcmp(lock, OPERATION)) {
-        	pthread_rwlock_rdlock(&fs->rwlockoperation);
+        	if(pthread_rwlock_rdlock(&fs->rwlockoperation)) {
+                printf("Error while RW Locking (rd)");
+            }
         }
 	#endif
 }
@@ -63,10 +71,14 @@ void lockRead(const char *lock) {
 void lockMutex(const char *lock) {
     #ifdef MUTEX
         if(!strcmp(lock, COMMAND)) {
-		    pthread_mutex_lock(&fs->mutexlockcommand);
+		    if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
+                printf("Error while Mutex locking");
+            }
         }
         else if (!strcmp(lock, OPERATION)) {
-        	pthread_mutex_lock(&fs->mutexlockoperation);
+        	if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
+                printf("Error while Mutex locking");
+            }
         }
     #endif
 }
@@ -74,10 +86,14 @@ void lockMutex(const char *lock) {
 void unlockMutex(const char *lock) {
 	#ifdef MUTEX
         if(!strcmp(lock, COMMAND)) {
-		    pthread_mutex_unlock(&fs->mutexlockcommand);
+		    if(pthread_mutex_unlock(&fs->mutexlockcommand) != 0) {
+                printf("Error while Mutex unlockiog");
+            }
         }
         else if (!strcmp(lock, OPERATION)) {
-		    pthread_mutex_unlock(&fs->mutexlockoperation);
+		    if(pthread_mutex_unlock(&fs->mutexlockoperation) != 0) {
+                printf("Error while Mutex unlocking");
+            }
         }
 	#endif
 }
@@ -85,10 +101,14 @@ void unlockMutex(const char *lock) {
 void unlockRWLock(const char *lock) {
     #ifdef RWLOCK
         if(!strcmp(lock, COMMAND)) {
-		    pthread_rwlock_unlock(&fs->rwlockcommand);
+            if(pthread_rwlock_unlock(&fs->rwlockcommand) != 0) {
+                printf("Error while RW unlocking");
+            }
         }
         else if (!strcmp(lock, OPERATION)) {
-		    pthread_rwlock_unlock(&fs->rwlockoperation);
+		    if(pthread_rwlock_unlock(&fs->rwlockoperation) != 0) {
+                printf("Error while RW unlocking");
+            }
         }
     #endif
 }
@@ -177,13 +197,13 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-        lockMutex("command");
-        lockRead("command");
+        lockMutex(COMMAND);
+        lockRead(COMMAND);
         const char* command = removeCommand();
         
         if (command == NULL) {
-            unlockRWLock("command");
-            unlockMutex("command");
+            unlockRWLock(COMMAND);
+            unlockMutex(COMMAND);
             return;
         }
    
@@ -198,31 +218,30 @@ void applyCommands() {
         }
 
         if(token != 'c'){
-            unlockRWLock("command");
-            unlockMutex("command");
+            unlockRWLock(COMMAND);
+            unlockMutex(COMMAND);
         }
 
         int searchResult;
         int iNumber;
         switch (token) {
             case 'c':
-                printf("Creating %s\n", name);  // Delete this line
                 iNumber = obtainNewInumber(fs);
-                unlockRWLock("command");
-                unlockMutex("command");
-                lockMutex("operation");
-                lockWrite("operation");             
+                unlockRWLock(COMMAND);
+                unlockMutex(COMMAND);
+                lockMutex(OPERATION);
+                lockWrite(OPERATION);             
                 create(fs, name, iNumber);
-                unlockRWLock("operation");
-                unlockMutex("operation");
+                unlockRWLock(OPERATION);
+                unlockMutex(OPERATION);
                 break;
 
              case 'l':
-                lockMutex("operation");
-                lockRead("operation");
+                lockMutex(OPERATION);
+                lockRead(OPERATION);
                 searchResult = lookup(fs, name);
-                unlockRWLock("operation");
-                unlockMutex("operation");
+                unlockRWLock(OPERATION);
+                unlockMutex(OPERATION);
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
@@ -230,12 +249,11 @@ void applyCommands() {
                 break;
 
             case 'd':
-                lockMutex("operation");
-                lockWrite("operation");
-                printf("Deleting %s\n", name); // Delete this line
+                lockMutex(OPERATION);
+                lockWrite(OPERATION);
                 delete(fs, name);
-                unlockRWLock("operation");
-                unlockMutex("operation");
+                unlockRWLock(OPERATION);
+                unlockMutex(OPERATION);
                 break;
 
             default: { /* error */
@@ -273,7 +291,7 @@ void createThreadPool() {
     }
 
     for(i = 0; i < numberThreads; i++) {
-        if (pthread_join(threads[i], NULL) != 0) {
+        if(pthread_join(threads[i], NULL) != 0) {
             fprintf(stderr, "Error while joining a thread\n");
         }
     }
