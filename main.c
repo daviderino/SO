@@ -146,11 +146,11 @@ void processInput(){
 void applyCommands() {
     while(numberCommands > 0) {
         lockMutex();
-        lockRead();
+        lockWrite();
         const char* command = removeCommand();
-        unlockRWLock();
         
         if (command == NULL) {
+            unlockRWLock();
             unlockMutex();
             return;
         }
@@ -165,14 +165,15 @@ void applyCommands() {
             exit(EXIT_FAILURE);
         }
 
-        if(token!='c')
+        if(token != 'c'){
+            unlockRWLock();
             unlockMutex();
+        }
 
         int searchResult;
         int iNumber;
         switch (token) {
             case 'c':
-                lockWrite();
                 printf("Creating %s\n", name);  // Delete this line
                 iNumber = obtainNewInumber(fs);
                 printf("%d ",iNumber);
