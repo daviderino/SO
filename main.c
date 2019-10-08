@@ -38,79 +38,79 @@ int lockInit() {
 	return 0;
 }
 
-void lockWrite(const char *lock) {
-    #if RWLOCK
-        if(!strcmp(lock, COMMAND)) {
-            if(pthread_rwlock_wrlock(&fs->rwlockcommand) != 0 ) {
+void lockMutexOrWrite(const char *lock) {
+	if(!strcmp(lock, COMMAND)) {
+		#if RWLOCK
+			if(pthread_rwlock_wrlock(&fs->rwlockcommand) != 0 ) {
                 printf("Error while RW Locking (wr)");
             }
-        }
-        else if (!strcmp(lock, OPERATION)) {
-        	if(pthread_rwlock_wrlock(&fs->rwlockoperation)){
+		#elif MUTEX
+			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
+                printf("Error while Mutex locking");
+            }
+		#endif
+	}
+	else if (!strcmp(lock, OPERATION)) {
+		#if RWLOCK
+			if(pthread_rwlock_wrlock(&fs->rwlockoperation)) {
                 printf("Error while RW Locking (wr)");
             }
-        }
-	#endif
-}
-
-void lockRead(const char *lock) {
-    #if RWLOCK
-        if(!strcmp(lock, COMMAND)) {
-		    if(pthread_rwlock_rdlock(&fs->rwlockcommand) != 0) {
-                printf("Error while RW Locking (rd)");
-            }
-        }
-        else if (!strcmp(lock, OPERATION)) {
-        	if(pthread_rwlock_rdlock(&fs->rwlockoperation)) {
-                printf("Error while RW Locking (rd)");
-            }
-        }
-	#endif
-}
-
-void lockMutex(const char *lock) {
-    #ifdef MUTEX
-        if(!strcmp(lock, COMMAND)) {
-		    if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
+		#elif MUTEX
+			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
                 printf("Error while Mutex locking");
             }
-        }
-        else if (!strcmp(lock, OPERATION)) {
-        	if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
-                printf("Error while Mutex locking");
-            }
-        }
-    #endif
+		#endif
+	}
 }
 
-void unlockMutex(const char *lock) {
-	#ifdef MUTEX
-        if(!strcmp(lock, COMMAND)) {
-		    if(pthread_mutex_unlock(&fs->mutexlockcommand) != 0) {
-                printf("Error while Mutex unlockiog");
+void lockMutexOrRead(const char *lock) {
+	if(!strcmp(lock, COMMAND)) {
+		#if RWLOCK
+			if(pthread_rwlock_rdlock(&fs->rwlockcommand) != 0) {
+                printf("Error while RW Locking (rd)");
             }
-        }
-        else if (!strcmp(lock, OPERATION)) {
-		    if(pthread_mutex_unlock(&fs->mutexlockoperation) != 0) {
+		#elif MUTEX
+			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
+                printf("Error while Mutex locking");
+            }
+		#endif
+	}
+	else if (!strcmp(lock, OPERATION)) {
+		#if RWLOCK
+			if(pthread_rwlock_rdlock(&fs->rwlockoperation)) {
+                printf("Error while RW Locking (rd)");
+            }
+		#elif MUTEX
+			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
+                printf("Error while Mutex locking");
+            }
+		#endif
+	}
+}
+
+void unlockMutexOrRW(const char *lock) {
+	if(!strcmp(lock, COMMAND)) {
+		#if RWLOCK
+			if(pthread_rwlock_unlock(&fs->rwlockcommand) != 0) {
+                printf("Error while RW unlocking");
+            }
+		#elif MUTEX
+			if(pthread_mutex_unlock(&fs->mutexlockcommand) != 0) {
                 printf("Error while Mutex unlocking");
             }
-        }
-	#endif
-}
-
-void unlockRWLock(const char *lock) {
-    #ifdef RWLOCK
-        if(!strcmp(lock, COMMAND)) {
-            if(pthread_rwlock_unlock(&fs->rwlockcommand) != 0) {
+		#endif
+	}
+	else if (!strcmp(lock, OPERATION)) {
+		#if RWLOCK
+			if(pthread_rwlock_unlock(&fs->rwlockoperation) != 0) {
                 printf("Error while RW unlocking");
             }
-        }
-        else if (!strcmp(lock, OPERATION)) {
-		    if(pthread_rwlock_unlock(&fs->rwlockoperation) != 0) {
-                printf("Error while RW unlocking");
+		#elif MUTEX
+			 if(pthread_mutex_unlock(&fs->mutexlockoperation) != 0) {
+                printf("Error while Mutex unlocking");
             }
-        }
-    #endif
+		#endif
+	}
 }
 
 static void displayUsage (const char* appName){
@@ -197,13 +197,11 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-        lockMutex(COMMAND);
-        lockRead(COMMAND);
+		lockMutexOrRead(COMMAND);
         const char* command = removeCommand();
         
         if (command == NULL) {
-            unlockRWLock(COMMAND);
-            unlockMutex(COMMAND);
+			unlockMutexOrRW(COMMAND);
             return;
         }
    
@@ -218,8 +216,7 @@ void applyCommands() {
         }
 
         if(token != 'c'){
-            unlockRWLock(COMMAND);
-            unlockMutex(COMMAND);
+			unlockMutexOrRW(COMMAND);
         }
 
         int searchResult;
@@ -227,21 +224,16 @@ void applyCommands() {
         switch (token) {
             case 'c':
                 iNumber = obtainNewInumber(fs);
-                unlockRWLock(COMMAND);
-                unlockMutex(COMMAND);
-                lockMutex(OPERATION);
-                lockWrite(OPERATION);             
+				unlockMutexOrRW(COMMAND);
+				lockMutexOrWrite(OPERATION);
                 create(fs, name, iNumber);
-                unlockRWLock(OPERATION);
-                unlockMutex(OPERATION);
+				unlockMutexOrRW(OPERATION);
                 break;
 
              case 'l':
-                lockMutex(OPERATION);
-                lockRead(OPERATION);
+			 	lockMutexOrRead(OPERATION);
                 searchResult = lookup(fs, name);
-                unlockRWLock(OPERATION);
-                unlockMutex(OPERATION);
+				unlockMutexOrRW(OPERATION);
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
@@ -249,11 +241,9 @@ void applyCommands() {
                 break;
 
             case 'd':
-                lockMutex(OPERATION);
-                lockWrite(OPERATION);
+				lockMutexOrWrite(OPERATION);
                 delete(fs, name);
-                unlockRWLock(OPERATION);
-                unlockMutex(OPERATION);
+				unlockMutexOrRW(OPERATION);
                 break;
 
             default: { /* error */
