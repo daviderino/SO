@@ -42,22 +42,26 @@ void lockMutexOrWrite(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
 			if(pthread_rwlock_wrlock(&fs->rwlockcommand) != 0 ) {
-                printf("Error while RW Locking (wr)");
+                fprintf(stderr, "Error while RW Locking (wr)");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
-                printf("Error while Mutex locking");
+                fprintf(stderr, "Error while Mutex locking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
 	else if (!strcmp(lock, OPERATION)) {
 		#if RWLOCK
 			if(pthread_rwlock_wrlock(&fs->rwlockoperation)) {
-                printf("Error while RW Locking (wr)");
+                fprintf(stderr, "Error while RW Locking (wr)");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
-                printf("Error while Mutex locking");
+                fprintf(stderr, "Error while Mutex locking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
@@ -67,22 +71,26 @@ void lockMutexOrRead(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
 			if(pthread_rwlock_rdlock(&fs->rwlockcommand) != 0) {
-                printf("Error while RW Locking (rd)");
+                fprintf(stderr, "Error while RW Locking (rd)");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
-                printf("Error while Mutex locking");
+                fprintf(stderr, "Error while Mutex locking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
 	else if (!strcmp(lock, OPERATION)) {
 		#if RWLOCK
 			if(pthread_rwlock_rdlock(&fs->rwlockoperation)) {
-                printf("Error while RW Locking (rd)");
+                fprintf(stderr, "Error while RW Locking (rd)");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
-                printf("Error while Mutex locking");
+                fprintf(stderr, "Error while Mutex locking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
@@ -92,22 +100,26 @@ void unlockMutexOrRW(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
 			if(pthread_rwlock_unlock(&fs->rwlockcommand) != 0) {
-                printf("Error while RW unlocking");
+                fprintf(stderr, "Error while RW unlocking");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			if(pthread_mutex_unlock(&fs->mutexlockcommand) != 0) {
-                printf("Error while Mutex unlocking");
+                fprintf(stderr, "Error while Mutex unlocking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
 	else if (!strcmp(lock, OPERATION)) {
 		#if RWLOCK
 			if(pthread_rwlock_unlock(&fs->rwlockoperation) != 0) {
-                printf("Error while RW unlocking");
+                fprintf(stderr, "Error while RW unlocking");
+                exit(EXIT_FAILURE);
             }
 		#elif MUTEX
 			 if(pthread_mutex_unlock(&fs->mutexlockoperation) != 0) {
-                printf("Error while Mutex unlocking");
+                fprintf(stderr, "Error while Mutex unlocking");
+                exit(EXIT_FAILURE);
             }
 		#endif
 	}
