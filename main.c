@@ -213,7 +213,7 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-		lockMutexOrRead(COMMAND);
+		lockMutexOrWrite(COMMAND);
         const char* command = removeCommand();
         
         if (command == NULL) {
