@@ -329,7 +329,9 @@ int main(int argc, char* argv[]) {
     print_tecnicofs_tree(outputFile, fs);
 
     free_tecnicofs(fs);
-    gettimeofday(&end, NULL);
+
+    if(gettimeofday(&end, NULL)!=0)
+        fprintf(stderr, "Error while initializing the time\n");
 
     t = (end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec)/1000000.0);
     print_time(t);
