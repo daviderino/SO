@@ -11,8 +11,9 @@
 #define MAX_COMMANDS 150000
 #define MAX_INPUT_SIZE 100
 
-#define COMMAND "command"
-#define OPERATION "operation"
+// Macros para escolher em qual dos locks operar
+#define COMMAND "command"       
+#define OPERATION "operation"   
 
 int numberThreads = 0;
 tecnicofs* fs;
@@ -38,6 +39,7 @@ int lockInit() {
 	return 0;
 }
 
+/* Da lock com mutex ou rwlock write, consoante o argumento recebido*/
 void lockMutexOrWrite(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
@@ -67,6 +69,7 @@ void lockMutexOrWrite(const char *lock) {
 	}
 }
 
+/* Da lock com mutex ou rwlock read, consoante o argumento recebido*/
 void lockMutexOrRead(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
@@ -96,6 +99,7 @@ void lockMutexOrRead(const char *lock) {
 	}
 }
 
+/* Da unlock do lock mutex ou rwlock */
 void unlockMutexOrRW(const char *lock) {
 	if(!strcmp(lock, COMMAND)) {
 		#if RWLOCK
@@ -271,6 +275,7 @@ void *threadApplyCommands() {
     pthread_exit(NULL);
 }
 
+/* Cria as threads todas, efetua a verificacao de erros e faz join das respetivas threads*/
 void createThreadPool() {
     pthread_t *threads;
     int i;
@@ -311,12 +316,14 @@ void print_time(double t) {
 int main(int argc, char* argv[]) {
     struct timeval start, end;
     double t;
-    gettimeofday(&start, NULL);
 
     parseArgs(argc, argv);
 
     fs = new_tecnicofs();
     processInput();
+
+    if(gettimeofday(&start, NULL)!=0)
+         fprintf(stderr, "Error while initializing the time\n");
 
     createThreadPool();
     print_tecnicofs_tree(outputFile, fs);
