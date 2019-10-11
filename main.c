@@ -302,6 +302,22 @@ void createThreadPool() {
             fprintf(stderr, "Error while joining a thread\n");
         }
     }
+
+    if(pthread_mutex_destroy(&fs->mutexlockcommand) != 0) {
+        fprintf(stderr, "Error while destroying a mutex(command)\n");
+    };
+
+    if(pthread_mutex_destroy(&fs->mutexlockoperation) != 0) {
+        fprintf(stderr, "Error while destroying a mutex(operation)\n");
+    };
+
+    if(pthread_rwlock_destroy(&fs->rwlockcommand) != 0) {
+        fprintf(stderr, "Error while destroying a rwlock(command)\n");
+    };
+
+    if(pthread_rwlock_destroy(&fs->rwlockoperation) != 0) {
+        fprintf(stderr, "Error while destroying a rwlock(operation)\n");
+    };
     
     free(threads);
 }

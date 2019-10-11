@@ -43,10 +43,10 @@ clean:
 	rm -f lib/*.o *.o tecnicofs-nosync tecnicofs-mutex tecnicofs-rwlock
 
 run-nosync: tecnicofs-nosync
-	./tecnicofs-nosync inputs/test3.txt output.txt 4
+	./tecnicofs-nosync inputs/test4.txt output.txt 4
 
 run-mutex: tecnicofs-mutex
-	./tecnicofs-mutex inputs/test3.txt output.txt 4
+	./tecnicofs-mutex inputs/test4.txt output.txt 4
 
 run-rwlock: tecnicofs-rwlock
-	./tecnicofs-rwlock inputs/test3.txt output.txt 4
+	./tecnicofs-rwlock inputs/test4.txt output.txt 4
