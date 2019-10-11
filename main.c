@@ -172,6 +172,7 @@ void processInput(){
 
     if(file == NULL) {
     	fprintf(stderr, "Error: invalid file");
+        exit(EXIT_FAILURE);
     }
 
     while (fgets(line, sizeof(line)/sizeof(char), file)) {
@@ -345,16 +346,20 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs();
     processInput();
 
-    if(gettimeofday(&start, NULL)!=0)
-         fprintf(stderr, "Error while initializing the time\n");
+    if(gettimeofday(&start, NULL)!=0) {
+        fprintf(stderr, "Error while initializing the time\n");
+        exit(EXIT_FAILURE);
+    }
 
     createThreadPool();
     print_tecnicofs_tree(outputFile, fs);
 
     free_tecnicofs(fs);
 
-    if(gettimeofday(&end, NULL)!=0)
+    if(gettimeofday(&end, NULL)!=0) {
         fprintf(stderr, "Error while initializing the time\n");
+        exit(EXIT_FAILURE);
+    }
 
     t = (end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec)/1000000.0);
     print_time(t);
