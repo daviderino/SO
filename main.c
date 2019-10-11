@@ -289,34 +289,41 @@ void createThreadPool() {
 
 	if(lockInit() != 0) {
         fprintf(stderr, "Error while creating a lock\n");
+        exit(EXIT_FAILURE);
 	}
 
     for(i = 0; i < numberThreads; i++) {
         if(pthread_create(&threads[i], NULL, threadApplyCommands, NULL) != 0) {
             fprintf(stderr, "Error while creating a thread\n");
+            exit(EXIT_FAILURE);
         }
     }
 
     for(i = 0; i < numberThreads; i++) {
         if(pthread_join(threads[i], NULL) != 0) {
             fprintf(stderr, "Error while joining a thread\n");
+            exit(EXIT_FAILURE);
         }
     }
 
     if(pthread_mutex_destroy(&fs->mutexlockcommand) != 0) {
         fprintf(stderr, "Error while destroying a mutex(command)\n");
+        exit(EXIT_FAILURE);
     };
 
     if(pthread_mutex_destroy(&fs->mutexlockoperation) != 0) {
         fprintf(stderr, "Error while destroying a mutex(operation)\n");
+        exit(EXIT_FAILURE);
     };
 
     if(pthread_rwlock_destroy(&fs->rwlockcommand) != 0) {
         fprintf(stderr, "Error while destroying a rwlock(command)\n");
+        exit(EXIT_FAILURE);
     };
 
     if(pthread_rwlock_destroy(&fs->rwlockoperation) != 0) {
         fprintf(stderr, "Error while destroying a rwlock(operation)\n");
+        exit(EXIT_FAILURE);
     };
     
     free(threads);
@@ -324,8 +331,8 @@ void createThreadPool() {
 
 void print_time(double t) {
     FILE *file= fopen(outputFile, "a");
-    fprintf(file, "Program executed in %.4f seconds\n", t);
-    printf( "Program executed in %.4f seconds\n", t); // delete later
+    fprintf(file, "TecnicoFS completed in %.4f seconds.\n", t);
+    printf( "TecnicoFS completed in %.4f seconds.\n", t);
     fclose(file);
 }
 
