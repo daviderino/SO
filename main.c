@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <math.h>
 #include <sys/time.h>
 #include "fs.h"
@@ -20,6 +21,7 @@ tecnicofs* fs;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *inputFile, *outputFile;
+int numberBuckets;
 
 int numberCommands = 0;
 int headQueue = 0;
@@ -39,94 +41,47 @@ int lockInit() {
 	return 0;
 }
 
-/* Da lock com mutex ou rwlock write, consoante o argumento recebido*/
-void lockMutexOrWrite(const char *lock) {
-	if(!strcmp(lock, COMMAND)) {
-		#if RWLOCK
-			if(pthread_rwlock_wrlock(&fs->rwlockcommand) != 0 ) {
-                fprintf(stderr, "Error while RW Locking (wr)");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
-                fprintf(stderr, "Error while Mutex locking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
-	else if (!strcmp(lock, OPERATION)) {
-		#if RWLOCK
-			if(pthread_rwlock_wrlock(&fs->rwlockoperation)) {
-                fprintf(stderr, "Error while RW Locking (wr)");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
-                fprintf(stderr, "Error while Mutex locking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
+void lockMutex(pthread_mutex_t lock) {
+    #if MUTEX
+    if(pthread_mutex_lock(&lock) != 0) {
+        fprintf(stderr, "Error while Mutex locking");
+        exit(EXIT_FAILURE);
+    }
+    #endif
 }
 
-/* Da lock com mutex ou rwlock read, consoante o argumento recebido*/
-void lockMutexOrRead(const char *lock) {
-	if(!strcmp(lock, COMMAND)) {
-		#if RWLOCK
-			if(pthread_rwlock_rdlock(&fs->rwlockcommand) != 0) {
-                fprintf(stderr, "Error while RW Locking (rd)");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			if(pthread_mutex_lock(&fs->mutexlockcommand) != 0) {
-                fprintf(stderr, "Error while Mutex locking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
-	else if (!strcmp(lock, OPERATION)) {
-		#if RWLOCK
-			if(pthread_rwlock_rdlock(&fs->rwlockoperation)) {
-                fprintf(stderr, "Error while RW Locking (rd)");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			if(pthread_mutex_lock(&fs->mutexlockoperation) != 0 ) {
-                fprintf(stderr, "Error while Mutex locking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
+void lockWrite(pthread_rwlock_t lock) {
+    #if RWLOCK
+		if(pthread_rwlock_wrlock(&lock) != 0 ) {
+            fprintf(stderr, "Error while RW Locking (wr)");
+            exit(EXIT_FAILURE);
+        }
+    #endif
 }
 
-/* Da unlock do lock mutex ou rwlock */
-void unlockMutexOrRW(const char *lock) {
-	if(!strcmp(lock, COMMAND)) {
-		#if RWLOCK
-			if(pthread_rwlock_unlock(&fs->rwlockcommand) != 0) {
-                fprintf(stderr, "Error while RW unlocking");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			if(pthread_mutex_unlock(&fs->mutexlockcommand) != 0) {
-                fprintf(stderr, "Error while Mutex unlocking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
-	else if (!strcmp(lock, OPERATION)) {
-		#if RWLOCK
-			if(pthread_rwlock_unlock(&fs->rwlockoperation) != 0) {
-                fprintf(stderr, "Error while RW unlocking");
-                exit(EXIT_FAILURE);
-            }
-		#elif MUTEX
-			 if(pthread_mutex_unlock(&fs->mutexlockoperation) != 0) {
-                fprintf(stderr, "Error while Mutex unlocking");
-                exit(EXIT_FAILURE);
-            }
-		#endif
-	}
+void lockWrite(pthread_rwlock_t lock) {
+    #if RWLOCK
+		if(pthread_rwlock_rdlock(&lock) != 0 ) {
+            fprintf(stderr, "Error while RW Locking (wr)");
+            exit(EXIT_FAILURE);
+        }
+    #endif
+}
+
+void unlockMutex(pthread_mutex_t lock) {
+    #if MUTEX
+        if(pthread_mutex_unlock(&lock) != 0) {
+            fprintf(stderr, "Error while Mutex unlocking");
+            exit(EXIT_FAILURE);
+        }
+    #endif
+}
+
+void unlockRWLock(pthread_rwlock_t lock) {
+    if(pthread_mutex_unlock(&lock) != 0) {
+        fprintf(stderr, "Error while RWLock unlocking");
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void displayUsage (const char* appName){
@@ -135,14 +90,15 @@ static void displayUsage (const char* appName){
 }
 
 static void parseArgs (long argc, char* const argv[]){
-    if (argc != 4) {
+    if (argc != 5) {
         fprintf(stderr, "Invalid format:\n");
-        displayUsage("./tecnicofs inputfile outputfile numthreads");
+        displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
     }
 
-    numberThreads = (int)strtol(argv[3], NULL, 10);
     inputFile = argv[1];
     outputFile = argv[2];
+    numberThreads = (int)strtol(argv[3], NULL, 10);
+    numberBuckets = argv[4];
 }
 
 int insertCommand(char* data) {
@@ -214,7 +170,8 @@ void processInput(){
 
 void applyCommands() {
     while(numberCommands > 0) {
-		lockMutexOrWrite(COMMAND);
+		lockMutex(fs->mutexlockcommand);
+        lockWrite(fs->rwlockcommand);
         const char* command = removeCommand();
         
         if (command == NULL) {
@@ -232,8 +189,9 @@ void applyCommands() {
             exit(EXIT_FAILURE);
         }
 
-        if(token != 'c'){
-			unlockMutexOrRW(COMMAND);
+        if(token != 'c') {
+            unlockMutex(fs->mutexlockcommand);
+            unlockRWLock(fs->rwlockcommand);
         }
 
         int searchResult;
@@ -241,16 +199,21 @@ void applyCommands() {
         switch (token) {
             case 'c':
                 iNumber = obtainNewInumber(fs);
-				unlockMutexOrRW(COMMAND);
-				lockMutexOrWrite(OPERATION);
+                unlockMutex(fs->mutexlockcommand);
+                unlockRWLock(fs->rwlockcommand);
+	            lockMutex(fs->mutexlockoperation);
+                lockWrite(fs->rwlockoperation);
                 create(fs, name, iNumber);
-				unlockMutexOrRW(OPERATION);
+                unlockMutex(fs->mutexlockoperation);
+                unlockRWLock(fs->rwlockoperation);
                 break;
 
              case 'l':
-			 	lockMutexOrRead(OPERATION);
+                lockMutex(fs->mutexlockoperation);
+                lockRead(fs->rwlockoperation);
                 searchResult = lookup(fs, name);
-				unlockMutexOrRW(OPERATION);
+                unlockMutex(fs->mutexlockoperation);
+                unlockRWLock(fs->rwlockoperation);
                 if(!searchResult)
                     printf("%s not found\n", name);
                 else
@@ -258,9 +221,11 @@ void applyCommands() {
                 break;
 
             case 'd':
-				lockMutexOrWrite(OPERATION);
+                lockMutex(fs->mutexlockoperation);
+                lockWrite(fs->rwlockoperation);                
                 delete(fs, name);
-				unlockMutexOrRW(OPERATION);
+                unlockMutex(fs->mutexlockoperation);
+                unlockRWLock(fs->rwlockoperation);
                 break;
 
             default: { /* error */
@@ -343,13 +308,15 @@ int main(int argc, char* argv[]) {
 
     parseArgs(argc, argv);
 
-    fs = new_tecnicofs();
-    processInput();
-
-    if(gettimeofday(&start, NULL)!=0) {
+    fs = new_tecnicofs(numberBuckets);
+    fs->hashSize = numberBuckets;
+    
+    if(gettimeofday(&start, NULL) != 0) {
         fprintf(stderr, "Error while initializing the time\n");
         exit(EXIT_FAILURE);
     }
+
+    processInput();
 
     createThreadPool();
     print_tecnicofs_tree(outputFile, fs);

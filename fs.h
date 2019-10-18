@@ -4,7 +4,8 @@
 #include <pthread.h>
 
 typedef struct tecnicofs {
-    node* bstRoot;
+    node** hashTable;
+    int hashSize;
     int nextINumber;
 	pthread_mutex_t mutexlockcommand;
     pthread_mutex_t mutexlockoperation;

@@ -49,4 +49,4 @@ run-mutex: tecnicofs-mutex
 	./tecnicofs-mutex inputs/test3.txt output.txt 4
 
 run-rwlock: tecnicofs-rwlock
-	./tecnicofs-rwlock inputs/test4.txt output.txt 4
+	./tecnicofs-rwlock inputs/test3.txt output.txt 4
