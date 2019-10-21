@@ -1,5 +1,5 @@
 #ifndef HASH_H
-#define HASH_H 1
+#define HASH_H
 
 int hash(char* name, int n);
 
