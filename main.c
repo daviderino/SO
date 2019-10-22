@@ -1,29 +1,29 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <getopt.h>
 #include <string.h>
-#include <ctype.h>
 #include <pthread.h>
-#include <semaphore.h>
 #include <math.h>
 #include "constants.h"
 #include "fs.h"
+#include "sem.h"
 #include "sync.h"
 #include "lib/timer.h"
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
+sem_t semProcessInput;
+sem_t semCommands;
+
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
+char *global_inputfile = NULL;
+char *global_outputfile = NULL;
 
 int numberCommands = 0;
 int headQueue = 0;
 
 int numberThreads = 0;
 int numberBuckets = 0;
-
-char *global_inputfile = NULL;
-char *global_outputfile = NULL;
 
 
 FILE *openOutputFile() {
@@ -126,6 +126,7 @@ void processInput(){
 }
 
 void *applyCommands() {
+    mutex_init(&commandsLock);
     while(1) {
         mutex_lock(&commandsLock);
         if(numberCommands > 0) {
@@ -139,7 +140,6 @@ void *applyCommands() {
             }
 
             sscanf(command, "%c %s", &token, name);
-    
             if(token != 'c') {
                 mutex_unlock(&commandsLock);
             }
@@ -173,6 +173,7 @@ void *applyCommands() {
             return NULL;
         }
     }
+    mutex_destroy(&commandsLock);
 }
 
 void runThreads() {
@@ -181,6 +182,7 @@ void runThreads() {
     #endif
 
     #if defined (RWLOCK) || defined (MUTEX)
+
         for(int i = 0; i < numberThreads; i++){
             int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
             if (err != 0){
@@ -200,7 +202,6 @@ void runThreads() {
     #if defined (RWLOCK) || defined (MUTEX)
         free(workers);
     #endif
-
 }
 
 int main(int argc, char* argv[]) {
@@ -209,19 +210,22 @@ int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
 
     fs = new_tecnicofs(numberBuckets);
-    
+
+    semMech_init(&semCommands, 0);
+    semMech_init(&semProcessInput, 10);
+
     TIMER_READ(startTime);
 
     processInput();
     runThreads();
+    TIMER_READ(endTime);
+    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
+    TIMER_DIFF_SECONDS(startTime, endTime));
+
     outputFp = openOutputFile();
 
     print_tecnicofs_tree(outputFp, fs);
     free_tecnicofs(fs);
-
-    TIMER_READ(endTime);
-    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
-        TIMER_DIFF_SECONDS(startTime, endTime));
 
     closeOutputFile(outputFp);
 

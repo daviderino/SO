@@ -3,13 +3,12 @@
 
 #include "sync.h"
 #include "lib/bst.h"
-#include <pthread.h>
 
 typedef struct tecnicofs {
     node** hashTable;
     int hashSize;
     int nextINumber;
-    syncMech bstLock;
+    syncMech *bstLock;
 } tecnicofs;
 
 int obtainNewInumber(tecnicofs* fs);
@@ -20,4 +19,4 @@ void delete(tecnicofs* fs, char *name);
 int lookup(tecnicofs* fs, char *name);
 void print_tecnicofs_tree(FILE * fp, tecnicofs *fs);
 
-#endif /* FS_H */
+#endif

@@ -19,8 +19,11 @@ tecnicofs* new_tecnicofs(int hashSize){
 	}
 
 	fs->hashTable = malloc(sizeof(node*) * hashSize);
+	fs->bstLock = malloc(sizeof(syncMech) * hashSize);
+
 	for(i = 0; i < hashSize; i++) {
 		fs->hashTable[i] = NULL;
+		sync_init(&(fs->bstLock[i]));
 	}
 
 	fs->nextINumber= 0;
@@ -32,6 +35,7 @@ void free_tecnicofs(tecnicofs* fs){
 	int i;
 	for(i = 0; i < fs->hashSize; i++) {
 		free_tree(fs->hashTable[i]);
+		sync_destroy(&(fs->bstLock[i]));
 	}
 	free(fs->hashTable);
 	free(fs);
@@ -40,30 +44,30 @@ void free_tecnicofs(tecnicofs* fs){
 void create(tecnicofs* fs, char *name, int inumber){
 	int i = hash(name, fs->hashSize);
 
-	sync_wrlock(&(fs->bstLock));
+	sync_wrlock(&(fs->bstLock[i]));
 	fs->hashTable[i] = insert(fs->hashTable[i], name, inumber);
-	sync_unlock(&(fs->bstLock));
+	sync_unlock(&(fs->bstLock[i]));
 }
 
 void delete(tecnicofs* fs, char *name){
 	int i = hash(name, fs->hashSize);
 
-	sync_wrlock(&(fs->bstLock));
+	sync_wrlock(&(fs->bstLock[i]));
 	fs->hashTable[i] = remove_item(fs->hashTable[i], name);
-	sync_unlock(&(fs->bstLock));
+	sync_unlock(&(fs->bstLock[i]));
 }
 
 int lookup(tecnicofs* fs, char *name){
 	int i = hash(name, fs->hashSize);
 
-	sync_rdlock(&(fs->bstLock));
+	sync_rdlock(&(fs->bstLock[i]));
 	int inumber = 0;
 	node* searchNode = search(fs->hashTable[i], name);
 
 	if ( searchNode )  {
 		inumber = searchNode->inumber;
 	}
-	sync_unlock(&(fs->bstLock));
+	sync_unlock(&(fs->bstLock[i]));
 	return inumber;
 }
 
