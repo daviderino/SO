@@ -13,3 +13,5 @@ tecnicofs-rwlock
 main_mutex.o
 main_nosync.o
 main_rwlock.o
+*.o
+lib/*.o

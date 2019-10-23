@@ -3,11 +3,9 @@
 
 #include <semaphore.h>
 
-#define semMech sem_t
-
-void semMech_init(semMech *sem, int control);
-void semMech_wait(semMech *sem);
-void semMech_post(semMech *sem);
-void semMech_destroy(semMech *sem);
+void semMech_init(sem_t *sem, int control);
+void semMech_wait(sem_t *sem);
+void semMech_post(sem_t *sem);
+void semMech_destroy(sem_t *sem);
 
 #endif

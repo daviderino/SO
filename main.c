@@ -215,10 +215,10 @@ int main(int argc, char* argv[]) {
     semMech_init(&semProcessInput, 10);
 
     TIMER_READ(startTime);
-
     processInput();
     runThreads();
     TIMER_READ(endTime);
+
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
     TIMER_DIFF_SECONDS(startTime, endTime));
 
