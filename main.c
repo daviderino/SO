@@ -114,6 +114,12 @@ void processInput(){
                 if(insertCommand(line))
                     break;
                 return;
+            case 'r':
+                if(numTokens != 3)
+                    errorParse(lineNumber);
+                if(insertCommand(line))
+                    break;
+                return;
             case '#':
                 break;
             default: { /* error */
@@ -162,6 +168,17 @@ void *applyCommands() {
                 case 'd':
                     delete(fs, name);
                     break;
+                case 'r':
+                    char *token;
+                    char *oldNodeName;
+                    char *newNodeName;
+                    oldNodeName = strtok(token, " ");
+                    newNodeName = strtok(NULL, " ");
+
+                    if(oldNodeName != NULL && newNodeName != NULL) {
+                        fs_rename(fs, oldNodeName, newNodeName);
+                    }
+                    // Erro?
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
                     exit(EXIT_FAILURE);
@@ -212,7 +229,7 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs(numberBuckets);
 
     semMech_init(&semCommands, 0);
-    semMech_init(&semProcessInput, 10);
+    semMech_init(&semProcessInput, MAX_COMMANDS);
 
     TIMER_READ(startTime);
     processInput();

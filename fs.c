@@ -57,6 +57,21 @@ void delete(tecnicofs* fs, char *name){
 	sync_unlock(&(fs->bstLock[i]));
 }
 
+void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
+	int oldINumber = lookup(fs, oldNodeName);
+	
+	if(oldINumber && !lookup(fs, newNodeName)) {
+		int oldIndex = hash(oldNodeName, fs->hashSize);
+		int newIndex = hash(newNodeName, fs->hashSize);
+		fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
+		fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
+	}
+	else {
+		// error?
+		return;
+	}
+}
+
 int lookup(tecnicofs* fs, char *name){
 	int i = hash(name, fs->hashSize);
 
