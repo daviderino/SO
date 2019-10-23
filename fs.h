@@ -1,16 +1,14 @@
 #ifndef FS_H
 #define FS_H
+
+#include "sync.h"
 #include "lib/bst.h"
-#include <pthread.h>
 
 typedef struct tecnicofs {
     node** hashTable;
     int hashSize;
     int nextINumber;
-	pthread_mutex_t mutexlockcommand;
-    pthread_mutex_t mutexlockoperation;
-	pthread_rwlock_t rwlockcommand;
-    pthread_rwlock_t rwlockoperation;
+    syncMech *bstLock;
 } tecnicofs;
 
 int obtainNewInumber(tecnicofs* fs);
@@ -19,6 +17,6 @@ void free_tecnicofs(tecnicofs* fs);
 void create(tecnicofs* fs, char *name, int inumber);
 void delete(tecnicofs* fs, char *name);
 int lookup(tecnicofs* fs, char *name);
-void print_tecnicofs_tree(char* title, tecnicofs *fs);
+void print_tecnicofs_tree(FILE * fp, tecnicofs *fs);
 
-#endif /* FS_H */
+#endif
