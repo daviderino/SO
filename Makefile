@@ -25,8 +25,9 @@ lib/bst.o: lib/bst.c lib/bst.h
 lib/hash.o: lib/hash.c lib/hash.h
 fs.o: fs.c fs.h lib/bst.h lib/hash.h
 sync.o: sync.c sync.h constants.h
-main.o: main.c fs.h lib/bst.h lib/hash.o constants.h lib/timer.h sync.h
-tecnicofs-nosync: lib/bst.o lib/hash.o fs.o sync.o main.o
+sem.o: sem.c sem.h
+main.o: main.c fs.h lib/bst.h lib/hash.o constants.h lib/timer.h sync.h sem.h
+tecnicofs-nosync: lib/bst.o lib/hash.o fs.o sync.o sem.o main.o
 
 ### MUTEX ###
 lib/bst-mutex.o: CFLAGS+=-DMUTEX
@@ -41,9 +42,12 @@ fs-mutex.o: fs.c fs.h lib/bst.h
 sync-mutex.o: CFLAGS+=-DMUTEX
 sync-mutex.o: sync.c sync.h constants.h
 
+sem-mutex.o: CFLAGS+=-DMUTEX
+sem-mutex.o: sem.c sem.h
+
 main-mutex.o: CFLAGS+=-DMUTEX
-main-mutex.o: main.c fs.h lib/bst.h constants.h lib/timer.h sync.h
-tecnicofs-mutex: lib/bst-mutex.o lib/hash-mutex.o fs-mutex.o sync-mutex.o main-mutex.o
+main-mutex.o: main.c fs.h lib/bst.h constants.h lib/timer.h sync.h sem.h
+tecnicofs-mutex: lib/bst-mutex.o lib/hash-mutex.o fs-mutex.o sync-mutex.o sem-mutex.o main-mutex.o
 
 ### RWLOCK ###
 lib/bst-rwlock.o: CFLAGS+=-DRWLOCK
@@ -58,13 +62,16 @@ fs-rwlock.o: fs.c fs.h lib/bst.h
 sync-rwlock.o: CFLAGS+=-DRWLOCK
 sync-rwlock.o: sync.c sync.h constants.h
 
+sem-rwlock.o: CFLAGS+=-DRWLOCK
+sem-rwlock.o: sem.c sem.h
+
 main-rwlock.o: CFLAGS+=-DRWLOCK
-main-rwlock.o: main.c fs.h lib/bst.h lib/hash.o constants.h lib/timer.h sync.h
-tecnicofs-rwlock: lib/bst-rwlock.o lib/hash-rwlock.o fs-rwlock.o sync-rwlock.o main-rwlock.o
+main-rwlock.o: main.c fs.h lib/bst.h lib/hash.o constants.h lib/timer.h sync.h sem.h
+tecnicofs-rwlock: lib/bst-rwlock.o lib/hash-rwlock.o fs-rwlock.o sync-rwlock.o sem-rwlock.o main-rwlock.o
 
 %.o:
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 clean:
 	@echo Cleaning...
-	rm -f $(OBJS) $(TARGETS)
+	rm -f lib/*.o *.o  $(TARGETS)
