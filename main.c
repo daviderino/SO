@@ -83,7 +83,7 @@ void errorParse(int lineNumber){
     exit(EXIT_FAILURE);
 }
 
-void processInput(){
+void *processInput(){
     FILE *inputFile = fopen(global_inputfile, "r");;
 	char line[MAX_INPUT_SIZE];
     int lineNumber = 0;
@@ -113,7 +113,13 @@ void processInput(){
                     errorParse(lineNumber);
                 if(insertCommand(line))
                     break;
-                return;
+                return NULL;
+            case 'r':
+                if(numTokens != 3)
+                    errorParse(lineNumber);
+                if(insertCommand(line))
+                    break;
+                return NULL;
             case '#':
                 break;
             default: { /* error */
@@ -123,6 +129,7 @@ void processInput(){
     }
 
     fclose(inputFile);
+    return NULL;
 }
 
 void *applyCommands() {
@@ -146,6 +153,8 @@ void *applyCommands() {
 
             int searchResult;
             int iNumber;
+            char *oldNodeName;
+            char *newNodeName;
             switch (token) {
                 case 'c':
                     iNumber = obtainNewInumber(fs);
@@ -162,6 +171,14 @@ void *applyCommands() {
                 case 'd':
                     delete(fs, name);
                     break;
+                case 'r':
+                    oldNodeName = strtok(name, " ");
+                    newNodeName = strtok(NULL, " ");
+
+                    if(oldNodeName != NULL && newNodeName != NULL) {
+                        fs_rename(fs, oldNodeName, newNodeName);
+                    }
+                    break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
                     exit(EXIT_FAILURE);
@@ -177,32 +194,46 @@ void *applyCommands() {
 }
 
 void runThreads() {
+    pthread_t producer;
+
     #if defined (RWLOCK) || defined (MUTEX)
-        pthread_t* workers = (pthread_t*) malloc(numberThreads * sizeof(pthread_t));
+        pthread_t *workers = (pthread_t*) malloc(numberThreads * sizeof(pthread_t));
     #endif
 
-    #if defined (RWLOCK) || defined (MUTEX)
+    
+    if(pthread_create(&producer, NULL, processInput, NULL) != 0){
+        perror("Can't create producer thread");
+        exit(EXIT_FAILURE);
+    }
 
+    if(pthread_join(producer, NULL)) {
+        perror("Can't join producer tread\n");
+        exit(EXIT_FAILURE);
+    }
+
+    #if defined (RWLOCK) || defined (MUTEX)
         for(int i = 0; i < numberThreads; i++){
             int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
             if (err != 0){
-                perror("Can't create thread");
+                perror("Can't create worker thread\n");
                 exit(EXIT_FAILURE);
             }
         }
         for(int i = 0; i < numberThreads; i++) {
             if(pthread_join(workers[i], NULL)) {
-                perror("Can't join thread");
+                perror("Can't join worker thread\n");
+                exit(EXIT_FAILURE);
             }
         }
     #else
         applyCommands();
     #endif
-
+    
     #if defined (RWLOCK) || defined (MUTEX)
         free(workers);
     #endif
 }
+
 
 int main(int argc, char* argv[]) {
     TIMER_T startTime, endTime;
@@ -212,10 +243,9 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs(numberBuckets);
 
     semMech_init(&semCommands, 0);
-    semMech_init(&semProcessInput, 10);
+    semMech_init(&semProcessInput, MAX_COMMANDS);
 
     TIMER_READ(startTime);
-    processInput();
     runThreads();
     TIMER_READ(endTime);
 
