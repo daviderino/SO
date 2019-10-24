@@ -12,8 +12,8 @@
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
-sem_t semProcessInput;
-sem_t semCommands;
+sem_t semMechProcessInput;
+sem_t semMechCommands;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
@@ -65,6 +65,7 @@ static void parseArgs (long argc, char* const argv[]){
 int insertCommand(char* data) {
     if(numberCommands != MAX_COMMANDS) {
         strcpy(inputCommands[numberCommands++], data);
+        numberCommands = numberCommands % MAX_COMMANDS;
         return 1;
     }
     return 0;
@@ -72,8 +73,9 @@ int insertCommand(char* data) {
 
 char* removeCommand() {
     if((numberCommands > 0)){
-        numberCommands--;
-        return inputCommands[headQueue++];
+        char *ret = inputCommands[headQueue];
+        headQueue = (headQueue + 1) % MAX_COMMANDS;
+        return ret;
     }
     return NULL;
 }
@@ -96,6 +98,8 @@ void *processInput(){
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
+
+        semMech_wait(&semMechProcessInput);
 
         int numTokens = sscanf(line, "%c %s", &token, name);
     
@@ -126,6 +130,8 @@ void *processInput(){
                 errorParse(lineNumber);
             }
         }
+
+        semMech_post(&semMechCommands);
     }
 
     fclose(inputFile);
@@ -135,6 +141,7 @@ void *processInput(){
 void *applyCommands() {
     mutex_init(&commandsLock);
     while(1) {
+        semMech_wait(&semMechCommands);
         mutex_lock(&commandsLock);
         if(numberCommands > 0) {
             char token;
@@ -142,6 +149,7 @@ void *applyCommands() {
             const char* command = removeCommand();
     
             if (command == NULL) {
+                semMech_post(&semMechCommands);
                 mutex_unlock(&commandsLock);
                 continue;
             }
@@ -189,6 +197,7 @@ void *applyCommands() {
             mutex_unlock(&commandsLock);
             return NULL;
         }
+        semMech_post(&semMechProcessInput);
     }
     mutex_destroy(&commandsLock);
 }
@@ -198,9 +207,18 @@ void runThreads() {
 
     #if defined (RWLOCK) || defined (MUTEX)
         pthread_t *workers = (pthread_t*) malloc(numberThreads * sizeof(pthread_t));
+       
+        for(int i = 0; i < numberThreads; i++) {
+            int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
+            if (err != 0){
+                perror("Can't create worker thread\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    #else
+        applyCommands();
     #endif
 
-    
     if(pthread_create(&producer, NULL, processInput, NULL) != 0){
         perror("Can't create producer thread");
         exit(EXIT_FAILURE);
@@ -210,26 +228,14 @@ void runThreads() {
         perror("Can't join producer tread\n");
         exit(EXIT_FAILURE);
     }
-
+    
     #if defined (RWLOCK) || defined (MUTEX)
-        for(int i = 0; i < numberThreads; i++){
-            int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
-            if (err != 0){
-                perror("Can't create worker thread\n");
-                exit(EXIT_FAILURE);
-            }
-        }
         for(int i = 0; i < numberThreads; i++) {
             if(pthread_join(workers[i], NULL)) {
                 perror("Can't join worker thread\n");
                 exit(EXIT_FAILURE);
             }
         }
-    #else
-        applyCommands();
-    #endif
-    
-    #if defined (RWLOCK) || defined (MUTEX)
         free(workers);
     #endif
 }
@@ -242,8 +248,8 @@ int main(int argc, char* argv[]) {
 
     fs = new_tecnicofs(numberBuckets);
 
-    semMech_init(&semCommands, 0);
-    semMech_init(&semProcessInput, MAX_COMMANDS);
+    semMech_init(&semMechCommands, 0);
+    semMech_init(&semMechProcessInput, MAX_COMMANDS);
 
     TIMER_READ(startTime);
     runThreads();
