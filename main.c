@@ -115,20 +115,27 @@ void *processInput(){
             case 'c':
             case 'l':
             case 'd':
-                if(numTokens != 2)
+                if(numTokens != 2) {
+                    semMech_post(&semWorker);
                     errorParse(lineNumber);
+                }
                 if(insertCommand(line))
                     break;
+                semMech_post(&semWorker);
                 return NULL;
             case 'r':
-                if(numTokens != 3)
+                if(numTokens != 3) {
+                    semMech_post(&semWorker);
                     errorParse(lineNumber);
+                }
                 if(insertCommand(line))
                     break;
+                semMech_post(&semWorker);
                 return NULL;
             case '#':
                 break;
             default: { /* error */
+                semMech_post(&semWorker);
                 errorParse(lineNumber);
             }
         }
@@ -141,78 +148,80 @@ void *processInput(){
 }
 
 void *applyCommands() {
-    while(1) {
-        semMech_wait(&semWorker);
+    semMech_wait(&semWorker);
+    while(numberCommands > 0) {
         mutex_lock(&commandsLock);
-        if(numberCommands > 0) {        
-            char token;
-            char name[MAX_INPUT_SIZE];
+        char token;
+        char name[MAX_INPUT_SIZE];
+       
+        const char* command = removeCommand();
 
-            const char* command = removeCommand();
-
-            if (command == NULL) {
-                semMech_post(&semWorker);
-                mutex_unlock(&commandsLock);
-                continue;
-            }
-
-            sscanf(command, "%c %s", &token, name);
-
-            if(token != 'c') {
-                mutex_unlock(&commandsLock);
-            }
-            int searchResult;
-            int iNumber;
-            char *oldNodeName;
-            char *newNodeName;
-            switch (token) {
-                case 'c':
-                    iNumber = obtainNewInumber(fs);
-                    mutex_unlock(&commandsLock);
-                    create(fs, name, iNumber);
-                    break;
-                 case 'l':
-                    searchResult = lookup(fs, name);
-                    if(!searchResult)
-                        printf("%s not found\n", name);
-                    else
-                        printf("%s found with inumber %d\n", name, searchResult);
-                    break;
-                case 'd':
-                    delete(fs, name);
-                    break;
-                case 'r':
-                    oldNodeName = strtok(name, " ");
-                    newNodeName = strtok(NULL, " ");
-                    if(oldNodeName != NULL && newNodeName != NULL) {
-                        fs_rename(fs, oldNodeName, newNodeName);
-                    }
-                    break;
-                default: { /* error */
-                    fprintf(stderr, "Error: command to apply\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            semMech_post(&semProducer);
-        }
-        else {
+        if (command == NULL) {
             mutex_unlock(&commandsLock);
             semMech_post(&semProducer);
-            break;
+            continue;
         }
+
+        sscanf(command, "%c %s", &token, name);
+
+        if(token != 'c') {
+            mutex_unlock(&commandsLock);
+        }
+
+        int searchResult;
+        int iNumber;
+        char *oldNodeName;
+        char *newNodeName;
+
+        switch (token) {
+            case 'c':
+                iNumber = obtainNewInumber(fs);
+                mutex_unlock(&commandsLock);
+                create(fs, name, iNumber);
+                break;
+             case 'l':
+                searchResult = lookup(fs, name);
+                if(!searchResult)
+                    printf("%s not found\n", name);
+                else
+                    printf("%s found with inumber %d\n", name, searchResult);
+                break;
+            case 'd':
+                delete(fs, name);
+                break;
+            case 'r':
+                oldNodeName = strtok(name, " ");
+                newNodeName = strtok(NULL, " ");
+                if(oldNodeName != NULL && newNodeName != NULL) {
+                    fs_rename(fs, oldNodeName, newNodeName);
+                }
+                break;
+            default: { /* error */
+                fprintf(stderr, "Error: command to apply\n");
+                semMech_post(&semProducer);
+                exit(EXIT_FAILURE);
+            }
+        }
+        semMech_post(&semProducer);
     }
+    semMech_post(&semProducer);
     return NULL;
 }
 
 void runThreads() {
     pthread_t producer;
 
+   if(pthread_create(&producer, NULL, processInput, NULL) != 0){
+        perror("Can't create producer thread");
+        exit(EXIT_FAILURE);
+    }
+
     #if defined (RWLOCK) || defined (MUTEX)
         pthread_t *workers = (pthread_t*) malloc(numberThreads * sizeof(pthread_t));
        
         for(int i = 0; i < numberThreads; i++) {
             int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
-            if (err != 0){
+            if (err != 0) {
                 perror("Can't create worker thread\n");
                 exit(EXIT_FAILURE);
             }
@@ -220,11 +229,6 @@ void runThreads() {
     #else
         applyCommands();
     #endif
-
-    if(pthread_create(&producer, NULL, processInput, NULL) != 0){
-        perror("Can't create producer thread");
-        exit(EXIT_FAILURE);
-    }
 
     if(pthread_join(producer, NULL)) {
         perror("Can't join producer tread\n");
@@ -239,9 +243,8 @@ void runThreads() {
             }
         }
         free(workers);
-    #endif
+    #endif  
 }
-
 
 int main(int argc, char* argv[]) {
     TIMER_T startTime, endTime;
@@ -252,9 +255,9 @@ int main(int argc, char* argv[]) {
 
     semMech_init(&semProducer, MAX_COMMANDS);
     semMech_init(&semWorker, 0);
+    mutex_init(&commandsLock);
 
     TIMER_READ(startTime);
-    mutex_init(&commandsLock);
     runThreads();
     TIMER_READ(endTime);
 
