@@ -142,9 +142,8 @@ void *processInput(){
 void *applyCommands() {
     mutex_init(&commandsLock);
 
-    while(numberCommands) {
+    while(numberCommands > 0) {
         semMech_wait(&semWorker);        
-
         mutex_lock(&commandsLock);
 
         char token;
@@ -153,6 +152,7 @@ void *applyCommands() {
 
         if (command == NULL) {
             mutex_unlock(&commandsLock);
+            semMech_post(&semProducer);
             continue;
         }
 
@@ -196,6 +196,7 @@ void *applyCommands() {
         semMech_post(&semProducer);
     }
     mutex_destroy(&commandsLock);
+    return NULL;
 }
 
 void runThreads() {
