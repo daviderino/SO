@@ -63,9 +63,11 @@ static void parseArgs (long argc, char* const argv[]){
 }
 
 int insertCommand(char* data) {
+    static int commandsPtr = 0;
     if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[numberCommands++], data);
-        numberCommands = numberCommands % MAX_COMMANDS;
+        strcpy(inputCommands[commandsPtr], data);
+        commandsPtr = (commandsPtr + 1) % MAX_COMMANDS;
+        numberCommands++;
         return 1;
     }
     return 0;
@@ -74,6 +76,7 @@ int insertCommand(char* data) {
 char* removeCommand() {
     if((numberCommands > 0)){
         char *ret = inputCommands[headQueue];
+        numberCommands--;
         headQueue = (headQueue + 1) % MAX_COMMANDS;
         return ret;
     }
@@ -99,8 +102,6 @@ void *processInput(){
         char token;
         char name[MAX_INPUT_SIZE];
 
-        semMech_wait(&semProducer);
-
         int numTokens = sscanf(line, "%c %s", &token, name);
     
         lineNumber++;
@@ -109,6 +110,7 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
+        semMech_wait(&semProducer);
         switch (token) {
             case 'c':
             case 'l':
@@ -149,7 +151,6 @@ void *applyCommands() {
             const char* command = removeCommand();
 
             if (command == NULL) {
-                puts("Comando nulo?");
                 semMech_post(&semWorker);
                 mutex_unlock(&commandsLock);
                 continue;
@@ -197,7 +198,7 @@ void *applyCommands() {
         else {
             mutex_unlock(&commandsLock);
             semMech_post(&semProducer);
-            return NULL;
+            break;
         }
     }
     return NULL;
@@ -249,8 +250,8 @@ int main(int argc, char* argv[]) {
 
     fs = new_tecnicofs(numberBuckets);
 
-    semMech_init(&semWorker, 0);
     semMech_init(&semProducer, MAX_COMMANDS);
+    semMech_init(&semWorker, 0);
 
     TIMER_READ(startTime);
     mutex_init(&commandsLock);
