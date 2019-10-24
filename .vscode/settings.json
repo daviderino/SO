@@ -3,6 +3,7 @@
         "stdlib.h": "c",
         "getopt.h": "c",
         "hash.h": "c",
-        "fs.h": "c"
+        "fs.h": "c",
+        "sem.h": "c"
     }
 }

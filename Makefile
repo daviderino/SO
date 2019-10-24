@@ -1,7 +1,7 @@
 # Makefile, versao 1
 # Sistemas Operativos, DEI/IST/ULisboa 2019-20
 
-SOURCES = main.c fs.c sync.c
+SOURCES = main.c fs.c sync.c sem.c
 SOURCES+= lib/bst.c
 OBJS_NOSYNC = $(SOURCES:%.c=%.o)
 OBJS_MUTEX  = $(SOURCES:%.c=%-mutex.o)
