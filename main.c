@@ -12,8 +12,8 @@
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
-sem_t semMechProcessInput;
-sem_t semMechCommands;
+sem_t semProducer;
+sem_t semWorker;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
@@ -99,7 +99,7 @@ void *processInput(){
         char token;
         char name[MAX_INPUT_SIZE];
 
-        semMech_wait(&semMechProcessInput);
+        semMech_wait(&semProducer);
 
         int numTokens = sscanf(line, "%c %s", &token, name);
     
@@ -109,8 +109,6 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
-
-        sem_wait(&semProducer);
 
         switch (token) {
             case 'c':
@@ -134,7 +132,7 @@ void *processInput(){
             }
         }
 
-        semMech_post(&semMechCommands);
+        semMech_post(&semWorker);
     }
 
     fclose(inputFile);
@@ -145,8 +143,7 @@ void *applyCommands() {
     mutex_init(&commandsLock);
 
     while(numberCommands) {
-
-        sem_wait(&semWorker);        
+        semMech_wait(&semWorker);        
 
         mutex_lock(&commandsLock);
 
@@ -164,7 +161,7 @@ void *applyCommands() {
             mutex_unlock(&commandsLock);
         }
 
-      int searchResult;
+        int searchResult;
         int iNumber;
         char *oldNodeName;
         char *newNodeName;
@@ -196,7 +193,7 @@ void *applyCommands() {
                 exit(EXIT_FAILURE);
             }
         }  
-        semMech_post(&semMechProcessInput);
+        semMech_post(&semProducer);
     }
     mutex_destroy(&commandsLock);
 }
@@ -247,8 +244,8 @@ int main(int argc, char* argv[]) {
     
     fs = new_tecnicofs(numberBuckets);
 
-    semMech_init(&semMechCommands, 0);
-    semMech_init(&semMechProcessInput, MAX_COMMANDS);
+    semMech_init(&semWorker, 0);
+    semMech_init(&semProducer, MAX_COMMANDS);
 
     TIMER_READ(startTime);
     runThreads();
