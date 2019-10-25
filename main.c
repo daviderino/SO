@@ -202,7 +202,7 @@ void *applyCommands() {
                 exit(EXIT_FAILURE);
             }
         }
-        semMech_post(&semProducer);
+            semMech_post(&semProducer);
     }
     semMech_post(&semProducer);
     return NULL;
