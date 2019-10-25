@@ -26,8 +26,7 @@ int headQueue = 0;
 int numberThreads = 0;
 int numberBuckets = 0;
 
-int flag = 0; //default: producer inactive
-
+int flag = 0; // default: producer inactive 
 
 FILE *openOutputFile() {
     FILE *fp;
@@ -100,11 +99,11 @@ void *processInput(){
     	fprintf(stderr, "Error: %s is an invalid file\n", global_inputfile);
         exit(EXIT_FAILURE);
     }
-
+    
     mutex_lock(&flagLock);
     flag=1;
     mutex_unlock(&flagLock);
-
+    
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
@@ -117,7 +116,7 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
-
+    
         semMech_wait(&semProducer);
 
         switch (token) {
@@ -127,102 +126,91 @@ void *processInput(){
                 if(numTokens != 2) {
                     errorParse(lineNumber);
                 }
-                if(insertCommand(line)){
+                if(insertCommand(line))
                     break;
-                }
-
                 return NULL;
-            
             case 'r':
-                if(numTokens != 3) 
+                if(numTokens != 3) {
                     errorParse(lineNumber);
-        
-                if(insertCommand(line)){
-                    break;
                 }
+                if(insertCommand(line))
+                    break;
                 return NULL;
-
             case '#':
                 break;
             default: { /* error */
                 errorParse(lineNumber);
             }
         }
+
         semMech_post(&semWorker);
     }
-
+    
     mutex_lock(&flagLock);
     flag=0;
     mutex_unlock(&flagLock);
-
+    
     fclose(inputFile);
     return NULL;
 }
 
 void *applyCommands() {
-    while(1) {
+    while(numberCommands > 0 || flag) {
         semMech_wait(&semWorker);
-        
-        if(numberCommands > 0 || flag == 1) {
-            char token;
-            char name[MAX_INPUT_SIZE];
-        
-            mutex_lock(&commandsLock);
-            const char* command = removeCommand();
+        mutex_lock(&commandsLock);
+        char token;
+        char name[MAX_INPUT_SIZE];
+       
+        const char* command = removeCommand();
 
-            if (command == NULL) {
+        if (command == NULL) {
+            mutex_unlock(&commandsLock);
+            semMech_post(&semProducer);
+            continue;
+        }
+
+        sscanf(command, "%c %s", &token, name);
+
+        if(token != 'c') {
+            mutex_unlock(&commandsLock);
+        }
+
+        int searchResult;
+        int iNumber;
+        char *oldNodeName;
+        char *newNodeName;
+
+        switch (token) {
+            case 'c':
+                iNumber = obtainNewInumber(fs);
                 mutex_unlock(&commandsLock);
-                semMech_post(&semProducer);
-                continue;
-            }
-
-            sscanf(command, "%c %s", &token, name);
-
-            if(token != 'c') {
-                mutex_unlock(&commandsLock);
-            }
-
-            int searchResult;
-            int iNumber;
-            char *oldNodeName;
-            char *newNodeName;
-
-            switch (token) {
-                case 'c':
-                    iNumber = obtainNewInumber(fs);
-                    mutex_unlock(&commandsLock);
-                    create(fs, name, iNumber);
-                    break;
-                case 'l':
-                    searchResult = lookup(fs, name);
-                    if(!searchResult)
-                        printf("%s not found\n", name);
-                    else
-                        printf("%s found with inumber %d\n", name, searchResult);
-                    break;
-                case 'd':
-                    delete(fs, name);
-                    break;
-                case 'r':
-                    oldNodeName = strtok(name, " ");
-                    newNodeName = strtok(NULL, " ");
-                    if(oldNodeName != NULL && newNodeName != NULL) {
-                        fs_rename(fs, oldNodeName, newNodeName);
-                    }
-                    break;
-                default: { /* error */
-                    fprintf(stderr, "Error: command to apply\n");
-                    exit(EXIT_FAILURE);
+                create(fs, name, iNumber);
+                break;
+             case 'l':
+                searchResult = lookup(fs, name);
+                if(!searchResult)
+                    printf("%s not found\n", name);
+                else
+                    printf("%s found with inumber %d\n", name, searchResult);
+                break;
+            case 'd':
+                delete(fs, name);
+                break;
+            case 'r':
+                oldNodeName = strtok(name, " ");
+                newNodeName = strtok(NULL, " ");
+                if(oldNodeName != NULL && newNodeName != NULL) {
+                    fs_rename(fs, oldNodeName, newNodeName);
                 }
+                break;
+            default: { /* error */
+                fprintf(stderr, "Error: command to apply\n");
+                exit(EXIT_FAILURE);
             }
-            semMech_post(&semProducer);
         }
-        else {
-            semMech_post(&semProducer);
-            puts("Está a sair");
-            return NULL;
-        }
+        semMech_post(&semProducer);
     }
+    return NULL;
 }
 
 void runThreads() {
@@ -286,7 +274,9 @@ int main(int argc, char* argv[]) {
 
     print_tecnicofs_tree(outputFp, fs);
     free_tecnicofs(fs);
+
     mutex_destroy(&commandsLock);
+    mutex_destroy(&flagLock);
 
     closeOutputFile(outputFp);
 
