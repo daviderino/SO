@@ -116,26 +116,21 @@ void *processInput(){
             case 'l':
             case 'd':
                 if(numTokens != 2) {
-                    semMech_post(&semWorker);
                     errorParse(lineNumber);
                 }
                 if(insertCommand(line))
                     break;
-                semMech_post(&semWorker);
                 return NULL;
             case 'r':
                 if(numTokens != 3) {
-                    semMech_post(&semWorker);
                     errorParse(lineNumber);
                 }
                 if(insertCommand(line))
                     break;
-                semMech_post(&semWorker);
                 return NULL;
             case '#':
                 break;
             default: { /* error */
-                semMech_post(&semWorker);
                 errorParse(lineNumber);
             }
         }
