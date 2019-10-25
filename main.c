@@ -133,6 +133,7 @@ void *processInput(){
                     semMech_post(&semWorker);
                     break;
                 }
+
                 return NULL;
             
             case 'r':
