@@ -15,7 +15,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tecnicofs-rwlock",
-            "args": ["inputs/test3.txt", "output.txt", "4", "5"],
+            "args": ["inputs/test1.txt", "output.txt", "4", "5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

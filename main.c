@@ -101,11 +101,9 @@ void *processInput(){
         exit(EXIT_FAILURE);
     }
 
-
     mutex_lock(&flagLock);
     flag=1;
     mutex_unlock(&flagLock);
-
 
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
@@ -130,7 +128,6 @@ void *processInput(){
                     errorParse(lineNumber);
                 }
                 if(insertCommand(line)){
-                    semMech_post(&semWorker);
                     break;
                 }
 
@@ -141,7 +138,6 @@ void *processInput(){
                     errorParse(lineNumber);
         
                 if(insertCommand(line)){
-                    semMech_post(&semWorker);
                     break;
                 }
                 return NULL;
@@ -150,10 +146,9 @@ void *processInput(){
                 break;
             default: { /* error */
                 errorParse(lineNumber);
-            }  semMech_post(&semWorker);
+            }
         }
-
-       
+        semMech_post(&semWorker);
     }
 
     mutex_lock(&flagLock);
@@ -165,15 +160,14 @@ void *processInput(){
 }
 
 void *applyCommands() {
-    while(1){
+    while(1) {
         semMech_wait(&semWorker);
         
-        if(numberCommands > 0 || flag == 1){
-
-            mutex_lock(&commandsLock);
+        if(numberCommands > 0 || flag == 1) {
             char token;
             char name[MAX_INPUT_SIZE];
         
+            mutex_lock(&commandsLock);
             const char* command = removeCommand();
 
             if (command == NULL) {
@@ -218,14 +212,16 @@ void *applyCommands() {
                     break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
-                    semMech_post(&semProducer);
                     exit(EXIT_FAILURE);
                 }
             }
-                semMech_post(&semProducer);
+            semMech_post(&semProducer);
         }
-    semMech_post(&semProducer);
-    return NULL;
+        else {
+            semMech_post(&semProducer);
+            puts("Está a sair");
+            return NULL;
+        }
     }
 }
 
