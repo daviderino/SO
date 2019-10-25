@@ -11,7 +11,6 @@
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
-pthread_mutex_t flagLock;
 
 sem_t semProducer;
 sem_t semWorker;
@@ -26,7 +25,6 @@ int headQueue = 0;
 int numberThreads = 0;
 int numberBuckets = 0;
 
-int flag = 0; // default: producer inactive 
 
 FILE *openOutputFile() {
     FILE *fp;
@@ -99,11 +97,7 @@ void *processInput(){
     	fprintf(stderr, "Error: %s is an invalid file\n", global_inputfile);
         exit(EXIT_FAILURE);
     }
-    
-    mutex_lock(&flagLock);
-    flag=1;
-    mutex_unlock(&flagLock);
-    
+
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
@@ -116,9 +110,7 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
-    
         semMech_wait(&semProducer);
-
         switch (token) {
             case 'c':
             case 'l':
@@ -128,6 +120,7 @@ void *processInput(){
                 }
                 if(insertCommand(line))
                     break;
+                //semMech_post(&semWorker);
                 return NULL;
             case 'r':
                 if(numTokens != 3) {
@@ -135,6 +128,7 @@ void *processInput(){
                 }
                 if(insertCommand(line))
                     break;
+              //  semMech_post(&semWorker);
                 return NULL;
             case '#':
                 break;
@@ -145,22 +139,19 @@ void *processInput(){
 
         semMech_post(&semWorker);
     }
-    
-    mutex_lock(&flagLock);
-    flag=0;
-    mutex_unlock(&flagLock);
-    
+
     fclose(inputFile);
     return NULL;
 }
 
 void *applyCommands() {
-    while(numberCommands > 0 || flag) {
-        semMech_wait(&semWorker);
-        mutex_lock(&commandsLock);
+    semMech_wait(&semWorker);
+
+    while(numberCommands > 0 ) {
         char token;
         char name[MAX_INPUT_SIZE];
        
+        mutex_lock(&commandsLock);
         const char* command = removeCommand();
 
         if (command == NULL) {
@@ -205,11 +196,13 @@ void *applyCommands() {
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
+                semMech_post(&semProducer);
                 exit(EXIT_FAILURE);
             }
         }
         semMech_post(&semProducer);
     }
+    semMech_post(&semProducer);
     return NULL;
 }
 
@@ -261,7 +254,6 @@ int main(int argc, char* argv[]) {
     semMech_init(&semProducer, MAX_COMMANDS);
     semMech_init(&semWorker, 0);
     mutex_init(&commandsLock);
-    mutex_init(&flagLock);
 
     TIMER_READ(startTime);
     runThreads();
@@ -274,9 +266,7 @@ int main(int argc, char* argv[]) {
 
     print_tecnicofs_tree(outputFp, fs);
     free_tecnicofs(fs);
-
     mutex_destroy(&commandsLock);
-    mutex_destroy(&flagLock);
 
     closeOutputFile(outputFp);
 
