@@ -15,6 +15,8 @@ pthread_mutex_t commandsLock;
 sem_t semProducer;
 sem_t semWorker;
 
+int c = 0;
+
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
 char *global_outputfile = NULL;
@@ -120,7 +122,6 @@ void *processInput(){
                 }
                 if(insertCommand(line))
                     break;
-                //semMech_post(&semWorker);
                 return NULL;
             case 'r':
                 if(numTokens != 3) {
@@ -128,7 +129,6 @@ void *processInput(){
                 }
                 if(insertCommand(line))
                     break;
-              //  semMech_post(&semWorker);
                 return NULL;
             case '#':
                 break;
@@ -147,16 +147,18 @@ void *processInput(){
 void *applyCommands() {
     semMech_wait(&semWorker);
 
-    while(numberCommands > 0 ) {
+    while(numberCommands > 0) {
         char token;
         char name[MAX_INPUT_SIZE];
        
         mutex_lock(&commandsLock);
         const char* command = removeCommand();
+		mutex_unlock(&commandsLock);
+		semMech_post(&semProducer);
+    	mutex_lock(&commandsLock);
 
         if (command == NULL) {
             mutex_unlock(&commandsLock);
-            semMech_post(&semProducer);
             continue;
         }
 
@@ -196,12 +198,12 @@ void *applyCommands() {
                 break;
             default: { /* error */
                 fprintf(stderr, "Error: command to apply\n");
-                semMech_post(&semProducer);
                 exit(EXIT_FAILURE);
             }
         }
-        semMech_post(&semProducer);
+		c++;
     }
+	printf("Commands: %d.\n", numberCommands);
     semMech_post(&semProducer);
     return NULL;
 }
@@ -258,6 +260,7 @@ int main(int argc, char* argv[]) {
     TIMER_READ(startTime);
     runThreads();
     TIMER_READ(endTime);
+	printf("C: %d\n", c);
 
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
     TIMER_DIFF_SECONDS(startTime, endTime));
