@@ -13,7 +13,7 @@ tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
 sem_t semProducer;
-sem_t semWorker;
+sem_t semConsumer;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
@@ -122,7 +122,7 @@ void *processInput(){
                 mutex_lock(&commandsLock);
                 validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
-                semMech_post(&semWorker);
+                semMech_post(&semConsumer);
 
                 if(validate) {
                     break;
@@ -136,7 +136,7 @@ void *processInput(){
                 mutex_lock(&commandsLock);
                 validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
-                semMech_post(&semWorker);
+                semMech_post(&semConsumer);
 
                 if(validate) {
                     break;
@@ -163,12 +163,9 @@ void *applyCommands() {
             char token;
             char name[MAX_INPUT_SIZE];
 
-            semMech_wait(&semWorker);
+            semMech_wait(&semConsumer);
             mutex_lock(&commandsLock);
             const char* command = removeCommand();
-		    mutex_unlock(&commandsLock);
-    	    mutex_lock(&commandsLock);
-        	semMech_post(&semProducer);
 
             if (command == NULL) {
                 mutex_unlock(&commandsLock);
@@ -215,6 +212,7 @@ void *applyCommands() {
                     exit(EXIT_FAILURE);
                 }
             }
+            semMech_post(&semProducer);
         }
         else {
             break;
@@ -269,7 +267,7 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs(numberBuckets);
 
     semMech_init(&semProducer, MAX_COMMANDS);
-    semMech_init(&semWorker, 0);
+    semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
 
     TIMER_READ(startTime);
@@ -285,6 +283,8 @@ int main(int argc, char* argv[]) {
     print_tecnicofs_tree(outputFp, fs);
     free_tecnicofs(fs);
     mutex_destroy(&commandsLock);
+    semMech_destroy(&semProducer);
+    semMech_destroy(&semConsumer);
 
     closeOutputFile(outputFp);
 
