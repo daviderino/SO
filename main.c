@@ -13,11 +13,8 @@ tecnicofs* fs;
 pthread_mutex_t commandsLock;
 /*pthread_mutex_t flagLock;*/
 
-/*pthread_mutex_t flagLock;*/
-
-
 sem_t semProducer;
-sem_t semConsumer;
+sem_t semWorker;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
@@ -33,349 +30,269 @@ int flag = 0; //default: producer inactive
 
 
 FILE *openOutputFile() {
-    FILE *fp;
-    fp = fopen(global_outputfile, "w");
-    if(!fp) {
-        perror("Error opening output file");
-        exit(EXIT_FAILURE);
-    }
-    return fp;
+     FILE *fp;
+     fp = fopen(global_outputfile, "w");
+     if(!fp) {
+         perror("Error opening output file");
+         exit(EXIT_FAILURE);
+     }
+     return fp;
 }
 
 void closeOutputFile(FILE *outputFp) {
-    fflush(outputFp);
-    fclose(outputFp);
+     fflush(outputFp);
+     fclose(outputFp);
 }
 
 static void displayUsage (const char* appName){
-    printf("Usage: %s\n", appName);
-    exit(EXIT_FAILURE);
+     printf("Usage: %s\n", appName);
+     exit(EXIT_FAILURE);
 }
 
 static void parseArgs (long argc, char* const argv[]){
-    if (argc != 5) {
-        fprintf(stderr, "Invalid format:\n");
-        displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
-    }
+     if (argc != 5) {
+         fprintf(stderr, "Invalid format:\n");
+         displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
+     }
 
-    global_inputfile = argv[1];
-    global_outputfile = argv[2];
-    numberThreads = (int)strtol(argv[3], NULL, 10);
-    numberBuckets = (int)strtol(argv[4], NULL, 10);
+     global_inputfile = argv[1];
+     global_outputfile = argv[2];
+     numberThreads = (int)strtol(argv[3], NULL, 10);
+     numberBuckets = (int)strtol(argv[4], NULL, 10);
 
-    if(!numberThreads) {
-        fprintf(stderr, "Invalid thread number\n");
-    }
+     if(!numberThreads) {
+         fprintf(stderr, "Invalid thread number\n");
+     }
 }
 
 int insertCommand(char* data) {
-    static int commandsPtr = 0;
-    if(numberCommands != MAX_COMMANDS) {
-        strcpy(inputCommands[commandsPtr], data);
-        commandsPtr = (commandsPtr + 1) % MAX_COMMANDS;
-        numberCommands++;
-        return 1;
-    }
-    return 0;
+     static int commandsPtr = 0;
+     if(numberCommands != MAX_COMMANDS) {
+         strcpy(inputCommands[commandsPtr], data);
+         commandsPtr = (commandsPtr + 1) % MAX_COMMANDS;
+         numberCommands++;
+         return 1;
+     }
+     return 0;
 }
 
 char* removeCommand() {
-    if((numberCommands > 0)){
-        char *ret = inputCommands[headQueue];
-        numberCommands--;
-        headQueue = (headQueue + 1) % MAX_COMMANDS;
-        return ret;
-    }
-    return NULL;
+     if((numberCommands > 0)){
+         char *ret = inputCommands[headQueue];
+         numberCommands--;
+         headQueue = (headQueue + 1) % MAX_COMMANDS;
+         return ret;
+     }
+     return NULL;
 }
 
 void errorParse(int lineNumber){
-    fprintf(stderr, "Error: line %d invalid\n", lineNumber);
-    exit(EXIT_FAILURE);
+     fprintf(stderr, "Error: line %d invalid\n", lineNumber);
+     exit(EXIT_FAILURE);
 }
 
 void *processInput(){
-    FILE *inputFile = fopen(global_inputfile, "r");;
-	char line[MAX_INPUT_SIZE];
-    int lineNumber = 0;
+     FILE *inputFile = fopen(global_inputfile, "r");;
+        char line[MAX_INPUT_SIZE];
+     int lineNumber = 0;
 
-    if(!inputFile) {
-    	fprintf(stderr, "Error: %s is an invalid file\n", global_inputfile);
-        exit(EXIT_FAILURE);
-    }
+     if(!inputFile) {
+         fprintf(stderr, "Error: %s is an invalid file\n",
+global_inputfile);
+         exit(EXIT_FAILURE);
+     }
 
 
-    /*mutex_lock(&flagLock);
-    flag=1;
-    mutex_unlock(&flagLock);*/
+     /*mutex_lock(&flagLock);
+     flag=1;
+     mutex_unlock(&flagLock);*/
 
-<<<<<<< HEAD
 
-=======
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-    while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
-        char token;
-        char name[MAX_INPUT_SIZE];
+     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
+         char token;
+         char name[MAX_INPUT_SIZE];
 
-        int numTokens = sscanf(line, "%c %s", &token, name);
-    
-        lineNumber++;
+         int numTokens = sscanf(line, "%c %s", &token, name);
 
-        /* perform minimal validation */
-        if (numTokens < 1) {
-            continue;
-        }
-<<<<<<< HEAD
+         lineNumber++;
 
-        semMech_wait(&semProducer);
+         /* perform minimal validation */
+         if (numTokens < 1) {
+             continue;
+         }
 
-=======
-        int validate;
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-        switch (token) {
-            case 'c':
-            case 'l':
-            case 'd':
-                if(numTokens != 2) {
-                    errorParse(lineNumber);
-                }
-<<<<<<< HEAD
-                if(insertCommand(line)){
-                    semMech_post(&semWorker);
-=======
-                semMech_wait(&semProducer);
-                mutex_lock(&commandsLock);
-                validate = insertCommand(line);
-                mutex_unlock(&commandsLock);
-                semMech_post(&semConsumer);
+         semMech_wait(&semProducer);
 
-                if(validate) {
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-                    break;
-                }
-                return NULL;
-            
-            case 'r':
-<<<<<<< HEAD
-                if(numTokens != 3) 
-                    errorParse(lineNumber);
-        
-                if(insertCommand(line)){
-                    semMech_post(&semWorker);
-                    break;
-                }
-=======
-                if(numTokens != 3) {
-                    errorParse(lineNumber);
-                }
-                semMech_wait(&semProducer);
-                mutex_lock(&commandsLock);
-                validate = insertCommand(line);
-                mutex_unlock(&commandsLock);
-                semMech_post(&semConsumer);
+         switch (token) {
+             case 'c':
+             case 'l':
+             case 'd':
+                 if(numTokens != 2) {
+                     errorParse(lineNumber);
+                 }
+                 if(insertCommand(line)){
+                     semMech_post(&semWorker);
+                     break;
+                 }
+                 return NULL;
 
-                if(validate) {
-                    break;
-                }               
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-                return NULL;
+             case 'r':
+                 if(numTokens != 3)
+                     errorParse(lineNumber);
 
-            case '#':
-                break;
-            default: { /* error */
-                errorParse(lineNumber);
-            }  semMech_post(&semWorker);
-        }
-<<<<<<< HEAD
+                 if(insertCommand(line)){
+                     semMech_post(&semWorker);
+                     break;
+                 }
+                 return NULL;
 
-       
-=======
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-    }
+             case '#':
+                 break;
+             default: { /* error */
+                 errorParse(lineNumber);
+             }  semMech_post(&semWorker);
+         }
 
-    /*mutex_lock(&flagLock);
-    flag=0;
-    mutex_unlock(&flagLock);*/
 
-    fclose(inputFile);
-    return NULL;
+     }
+
+     /*mutex_lock(&flagLock);
+     flag=0;
+     mutex_unlock(&flagLock);*/
+
+     fclose(inputFile);
+     return NULL;
 }
 
 void *applyCommands() {
-    semMech_wait(&semWorker);
-    while(numberCommands > 0){
-            mutex_lock(&commandsLock);
-            char token;
-            char name[MAX_INPUT_SIZE];
-<<<<<<< HEAD
-        
-            const char* command = removeCommand();
+     semMech_wait(&semWorker);
+     while(numberCommands > 0){
+             mutex_lock(&commandsLock);
+             char token;
+             char name[MAX_INPUT_SIZE];
 
-            if (command == NULL) {
-                mutex_unlock(&commandsLock);
-                semMech_post(&semProducer);
-                continue;
-            }
+             const char* command = removeCommand();
 
-            sscanf(command, "%c %s", &token, name);
+             if (command == NULL) {
+                 mutex_unlock(&commandsLock);
+                 semMech_post(&semProducer);
+                 continue;
+             }
 
-            if(token != 'c') {
-                mutex_unlock(&commandsLock);
-            }
+             sscanf(command, "%c %s", &token, name);
 
-            int searchResult;
-            int iNumber;
-            char *oldNodeName;
-            char *newNodeName;
+             if(token != 'c') {
+                 mutex_unlock(&commandsLock);
+             }
 
-=======
+             int searchResult;
+             int iNumber;
+             char *oldNodeName;
+             char *newNodeName;
 
-            semMech_wait(&semConsumer);
-            mutex_lock(&commandsLock);
-            const char* command = removeCommand();
-
-            if (command == NULL) {
-                mutex_unlock(&commandsLock);
-                continue;
-            }
-
-            sscanf(command, "%c %s", &token, name);
-
-            if(token != 'c') {
-                mutex_unlock(&commandsLock);
-            }
-
-            int searchResult;
-            int iNumber;
-            char *oldNodeName;
-            char *newNodeName;
-
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-            switch (token) {
-                case 'c':
-                    iNumber = obtainNewInumber(fs);
-                    mutex_unlock(&commandsLock);
-<<<<<<< HEAD
-                    create(fs, name, iNumber);
-                    break;
-                case 'l':
-=======
-                    puts("adding");
-                    create(fs, name, iNumber);
-                    break;
+             switch (token) {
+                 case 'c':
+                     iNumber = obtainNewInumber(fs);
+                     mutex_unlock(&commandsLock);
+                     create(fs, name, iNumber);
+                     break;
                  case 'l':
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-                    searchResult = lookup(fs, name);
-                    if(!searchResult)
-                        printf("%s not found\n", name);
-                    else
-                        printf("%s found with inumber %d\n", name, searchResult);
-                    break;
-                case 'd':
-                    delete(fs, name);
-                    break;
-                case 'r':
-                    oldNodeName = strtok(name, " ");
-                    newNodeName = strtok(NULL, " ");
-                    if(oldNodeName != NULL && newNodeName != NULL) {
-                        fs_rename(fs, oldNodeName, newNodeName);
-                    }
-                    break;
-                default: { /* error */
-                    fprintf(stderr, "Error: command to apply\n");
-<<<<<<< HEAD
-                    semMech_post(&semProducer);
-                    exit(EXIT_FAILURE);
-                }
-            }
-                semMech_post(&semProducer);
-=======
-                    exit(EXIT_FAILURE);
-                }
-            }
-            semMech_post(&semProducer);
-        }
-        else {
-            break;
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
-        }
-    semMech_post(&semProducer);
-
-    return NULL;
+                     searchResult = lookup(fs, name);
+                     if(!searchResult)
+                         printf("%s not found\n", name);
+                     else
+                         printf("%s found with inumber %d\n", name,
+searchResult);
+                     break;
+                 case 'd':
+                     delete(fs, name);
+                     break;
+                 case 'r':
+                     oldNodeName = strtok(name, " ");
+                     newNodeName = strtok(NULL, " ");
+                     if(oldNodeName != NULL && newNodeName != NULL) {
+                         fs_rename(fs, oldNodeName, newNodeName);
+                     }
+                     break;
+                 default: { /* error */
+                     fprintf(stderr, "Error: command to apply\n");
+                     semMech_post(&semProducer);
+                     exit(EXIT_FAILURE);
+                 }
+             }
+                 semMech_post(&semProducer);
+         }
+     semMech_post(&semProducer);
+     return NULL;
 }
 
 
 void runThreads() {
-    pthread_t producer;
+     pthread_t producer;
 
-   if(pthread_create(&producer, NULL, processInput, NULL) != 0){
-        perror("Can't create producer thread");
-        exit(EXIT_FAILURE);
-    }
+    if(pthread_create(&producer, NULL, processInput, NULL) != 0){
+         perror("Can't create producer thread");
+         exit(EXIT_FAILURE);
+     }
 
-    #if defined (RWLOCK) || defined (MUTEX)
-        pthread_t *workers = (pthread_t*) malloc(numberThreads * sizeof(pthread_t));
-       
-        for(int i = 0; i < numberThreads; i++) {
-            int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
-            if (err != 0) {
-                perror("Can't create worker thread\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    #else
-        applyCommands();
-    #endif
+     #if defined (RWLOCK) || defined (MUTEX)
+         pthread_t *workers = (pthread_t*) malloc(numberThreads *
+sizeof(pthread_t));
 
-    if(pthread_join(producer, NULL)) {
-        perror("Can't join producer tread\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    #if defined (RWLOCK) || defined (MUTEX)
-        for(int i = 0; i < numberThreads; i++) {
-            if(pthread_join(workers[i], NULL)) {
-                perror("Can't join worker thread\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-        free(workers);
-    #endif  
+         for(int i = 0; i < numberThreads; i++) {
+             int err = pthread_create(&workers[i], NULL, applyCommands,
+NULL);
+             if (err != 0) {
+                 perror("Can't create worker thread\n");
+                 exit(EXIT_FAILURE);
+             }
+         }
+     #else
+         applyCommands();
+     #endif
+
+     if(pthread_join(producer, NULL)) {
+         perror("Can't join producer tread\n");
+         exit(EXIT_FAILURE);
+     }
+
+     #if defined (RWLOCK) || defined (MUTEX)
+         for(int i = 0; i < numberThreads; i++) {
+             if(pthread_join(workers[i], NULL)) {
+                 perror("Can't join worker thread\n");
+                 exit(EXIT_FAILURE);
+             }
+         }
+         free(workers);
+     #endif
 }
 
 int main(int argc, char* argv[]) {
-    TIMER_T startTime, endTime;
-    FILE * outputFp;
-    parseArgs(argc, argv);
+     TIMER_T startTime, endTime;
+     FILE * outputFp;
+     parseArgs(argc, argv);
 
-    fs = new_tecnicofs(numberBuckets);
+     fs = new_tecnicofs(numberBuckets);
 
-    semMech_init(&semProducer, MAX_COMMANDS);
-    semMech_init(&semConsumer, 0);
-    mutex_init(&commandsLock);
-    /*mutex_init(&flagLock);*/
-<<<<<<< HEAD
-=======
+     semMech_init(&semProducer, MAX_COMMANDS);
+     semMech_init(&semWorker, 0);
+     mutex_init(&commandsLock);
+     /*mutex_init(&flagLock);*/
 
->>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
+     TIMER_READ(startTime);
+     runThreads();
+     TIMER_READ(endTime);
 
-    TIMER_READ(startTime);
-    runThreads();
-    TIMER_READ(endTime);
-	
+     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n",
+     TIMER_DIFF_SECONDS(startTime, endTime));
 
-    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
-    TIMER_DIFF_SECONDS(startTime, endTime));
+     outputFp = openOutputFile();
 
-    outputFp = openOutputFile();
+     print_tecnicofs_tree(outputFp, fs);
+     free_tecnicofs(fs);
+     mutex_destroy(&commandsLock);
 
-    print_tecnicofs_tree(outputFp, fs);
-    free_tecnicofs(fs);
-    mutex_destroy(&commandsLock);
-    semMech_destroy(&semProducer);
-    semMech_destroy(&semConsumer);
+     closeOutputFile(outputFp);
 
-    closeOutputFile(outputFp);
-
-    exit(EXIT_SUCCESS);
+     exit(EXIT_SUCCESS);
 }
