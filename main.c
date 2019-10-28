@@ -111,6 +111,7 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
+        
         semMech_wait(&semProducer);
         switch (token) {
             case 'c':
@@ -120,7 +121,6 @@ void *processInput(){
                     errorParse(lineNumber);
                 }
                 if(insertCommand(line)){
-                    semMech_post(&semConsumer);
                     break;
                 }
                 return NULL;
@@ -128,7 +128,6 @@ void *processInput(){
                 if(numTokens != 3)
                     errorParse(lineNumber);
                 if(insertCommand(line)){
-                    semMech_post(&semConsumer);
                     break;
                 }
                 return NULL;
@@ -136,24 +135,23 @@ void *processInput(){
                 break;
             default: { /* error */
                 errorParse(lineNumber);
-            }  semMech_post(&semConsumer);
+            }
         }
+        semMech_post(&semConsumer);
     }
 
     mutex_lock(&flagLock);
     producerActive=0;
     mutex_unlock(&flagLock);
 
+    semMech_post(&semConsumer);
+
     fclose(inputFile);
     return NULL;
 }
 
 void *applyCommands() {
-    int semValue;
-
-    sem_getvalue(&semConsumer, &semValue); //TODO: Verificar erro
-
-    while(semValue || producerActive) {
+    while(producerActive || numberCommands) {
         char token;
         char name[MAX_INPUT_SIZE];
         
@@ -164,14 +162,15 @@ void *applyCommands() {
         if (command == NULL) {
             mutex_unlock(&commandsLock);
             semMech_post(&semProducer);
-            sem_getvalue(&semConsumer, &semValue); //TODO: Verificar erro
             continue;
         }
 
         sscanf(command, "%c %s", &token, name);
+
         if(token != 'c') {
             mutex_unlock(&commandsLock);
         }
+
         int searchResult;
         int iNumber;
         char *oldNodeName;
@@ -206,9 +205,8 @@ void *applyCommands() {
             }
         }
         semMech_post(&semProducer);
-        sem_getvalue(&semConsumer, &semValue); //TODO: Verificar erro
-     }
-     return NULL;
+    }
+    return NULL;
 }
 
 
@@ -251,31 +249,30 @@ void runThreads() {
 }
 
 int main(int argc, char* argv[]) {
-     TIMER_T startTime, endTime;
-     FILE * outputFp;
-     parseArgs(argc, argv);
+    TIMER_T startTime, endTime;
+    FILE * outputFp;
 
-     fs = new_tecnicofs(numberBuckets);
+    parseArgs(argc, argv);
+    fs = new_tecnicofs(numberBuckets);
 
-     semMech_init(&semProducer, MAX_COMMANDS);
-     semMech_init(&semConsumer, 0);
-     mutex_init(&commandsLock);
-     /*mutex_init(&flagLock);*/
+    semMech_init(&semProducer, MAX_COMMANDS);
+    semMech_init(&semConsumer, 0);
+    mutex_init(&commandsLock);
+    mutex_init(&flagLock);
 
-     TIMER_READ(startTime);
-     runThreads();
-     TIMER_READ(endTime);
+    TIMER_READ(startTime);
+    runThreads();
+    TIMER_READ(endTime);
+    
+    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n",
+    TIMER_DIFF_SECONDS(startTime, endTime));
+    
+    outputFp = openOutputFile();
+    print_tecnicofs_tree(outputFp, fs);
 
-     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n",
-     TIMER_DIFF_SECONDS(startTime, endTime));
-
-     outputFp = openOutputFile();
-
-     print_tecnicofs_tree(outputFp, fs);
-     free_tecnicofs(fs);
-     mutex_destroy(&commandsLock);
-
-     closeOutputFile(outputFp);
-
-     exit(EXIT_SUCCESS);
+    free_tecnicofs(fs);
+    mutex_destroy(&commandsLock);
+    closeOutputFile(outputFp);
+    
+    exit(EXIT_SUCCESS);
 }
