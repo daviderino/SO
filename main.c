@@ -12,6 +12,9 @@
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
+/*pthread_mutex_t flagLock;*/
+
+
 sem_t semProducer;
 sem_t semConsumer;
 
@@ -98,6 +101,11 @@ void *processInput(){
         exit(EXIT_FAILURE);
     }
 
+
+    /*mutex_lock(&flagLock);
+    flag=1;
+    mutex_unlock(&flagLock);*/
+
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
@@ -149,17 +157,19 @@ void *processInput(){
             }
         }
     }
+
+    /*mutex_lock(&flagLock);
+    flag=0;
+    mutex_unlock(&flagLock);*/
+
     fclose(inputFile);
     return NULL;
 }
 
 void *applyCommands() {
-    while(1) {
-        mutex_lock(&commandsLock);
-        int cond = (numberCommands > 0);
-        mutex_unlock(&commandsLock);
-        
-        if(cond) {
+    semMech_wait(&semWorker);
+    while(numberCommands > 0){
+            mutex_lock(&commandsLock);
             char token;
             char name[MAX_INPUT_SIZE];
 
@@ -217,9 +227,11 @@ void *applyCommands() {
         else {
             break;
         }
-    }
+    semMech_post(&semProducer);
+
     return NULL;
 }
+
 
 void runThreads() {
     pthread_t producer;
@@ -269,6 +281,8 @@ int main(int argc, char* argv[]) {
     semMech_init(&semProducer, MAX_COMMANDS);
     semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
+    /*mutex_init(&flagLock);*/
+
 
     TIMER_READ(startTime);
     runThreads();
