@@ -13,8 +13,11 @@ tecnicofs* fs;
 pthread_mutex_t commandsLock;
 /*pthread_mutex_t flagLock;*/
 
+/*pthread_mutex_t flagLock;*/
+
+
 sem_t semProducer;
-sem_t semWorker;
+sem_t semConsumer;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_inputfile = NULL;
@@ -106,7 +109,10 @@ void *processInput(){
     flag=1;
     mutex_unlock(&flagLock);*/
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
@@ -119,9 +125,13 @@ void *processInput(){
         if (numTokens < 1) {
             continue;
         }
+<<<<<<< HEAD
 
         semMech_wait(&semProducer);
 
+=======
+        int validate;
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
         switch (token) {
             case 'c':
             case 'l':
@@ -129,13 +139,24 @@ void *processInput(){
                 if(numTokens != 2) {
                     errorParse(lineNumber);
                 }
+<<<<<<< HEAD
                 if(insertCommand(line)){
                     semMech_post(&semWorker);
+=======
+                semMech_wait(&semProducer);
+                mutex_lock(&commandsLock);
+                validate = insertCommand(line);
+                mutex_unlock(&commandsLock);
+                semMech_post(&semConsumer);
+
+                if(validate) {
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
                     break;
                 }
                 return NULL;
             
             case 'r':
+<<<<<<< HEAD
                 if(numTokens != 3) 
                     errorParse(lineNumber);
         
@@ -143,6 +164,20 @@ void *processInput(){
                     semMech_post(&semWorker);
                     break;
                 }
+=======
+                if(numTokens != 3) {
+                    errorParse(lineNumber);
+                }
+                semMech_wait(&semProducer);
+                mutex_lock(&commandsLock);
+                validate = insertCommand(line);
+                mutex_unlock(&commandsLock);
+                semMech_post(&semConsumer);
+
+                if(validate) {
+                    break;
+                }               
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
                 return NULL;
 
             case '#':
@@ -151,8 +186,11 @@ void *processInput(){
                 errorParse(lineNumber);
             }  semMech_post(&semWorker);
         }
+<<<<<<< HEAD
 
        
+=======
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
     }
 
     /*mutex_lock(&flagLock);
@@ -169,6 +207,7 @@ void *applyCommands() {
             mutex_lock(&commandsLock);
             char token;
             char name[MAX_INPUT_SIZE];
+<<<<<<< HEAD
         
             const char* command = removeCommand();
 
@@ -189,13 +228,43 @@ void *applyCommands() {
             char *oldNodeName;
             char *newNodeName;
 
+=======
+
+            semMech_wait(&semConsumer);
+            mutex_lock(&commandsLock);
+            const char* command = removeCommand();
+
+            if (command == NULL) {
+                mutex_unlock(&commandsLock);
+                continue;
+            }
+
+            sscanf(command, "%c %s", &token, name);
+
+            if(token != 'c') {
+                mutex_unlock(&commandsLock);
+            }
+
+            int searchResult;
+            int iNumber;
+            char *oldNodeName;
+            char *newNodeName;
+
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
             switch (token) {
                 case 'c':
                     iNumber = obtainNewInumber(fs);
                     mutex_unlock(&commandsLock);
+<<<<<<< HEAD
                     create(fs, name, iNumber);
                     break;
                 case 'l':
+=======
+                    puts("adding");
+                    create(fs, name, iNumber);
+                    break;
+                 case 'l':
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
                     searchResult = lookup(fs, name);
                     if(!searchResult)
                         printf("%s not found\n", name);
@@ -214,13 +283,24 @@ void *applyCommands() {
                     break;
                 default: { /* error */
                     fprintf(stderr, "Error: command to apply\n");
+<<<<<<< HEAD
                     semMech_post(&semProducer);
                     exit(EXIT_FAILURE);
                 }
             }
                 semMech_post(&semProducer);
+=======
+                    exit(EXIT_FAILURE);
+                }
+            }
+            semMech_post(&semProducer);
+        }
+        else {
+            break;
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
         }
     semMech_post(&semProducer);
+
     return NULL;
 }
 
@@ -271,13 +351,18 @@ int main(int argc, char* argv[]) {
     fs = new_tecnicofs(numberBuckets);
 
     semMech_init(&semProducer, MAX_COMMANDS);
-    semMech_init(&semWorker, 0);
+    semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
     /*mutex_init(&flagLock);*/
+<<<<<<< HEAD
+=======
+
+>>>>>>> f37478e2480fa03da52a3ab6e04ebb3c06950a39
 
     TIMER_READ(startTime);
     runThreads();
     TIMER_READ(endTime);
+	
 
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", 
     TIMER_DIFF_SECONDS(startTime, endTime));
@@ -287,6 +372,8 @@ int main(int argc, char* argv[]) {
     print_tecnicofs_tree(outputFp, fs);
     free_tecnicofs(fs);
     mutex_destroy(&commandsLock);
+    semMech_destroy(&semProducer);
+    semMech_destroy(&semConsumer);
 
     closeOutputFile(outputFp);
 
