@@ -77,26 +77,31 @@ void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
 	int oldIndex = hash(oldNodeName, fs->hashSize);
 	int newIndex = hash(newNodeName, fs->hashSize);
 
-	while(1) {
-		if(oldIndex < newIndex) {
-			sync_wrlock(&(fs->bstLock[oldIndex]));
-			sync_wrlock(&(fs->bstLock[newIndex]));
-		}
-		else {
-			sync_wrlock(&(fs->bstLock[newIndex]));
-			sync_wrlock(&(fs->bstLock[oldIndex]));
-		}
+	if(oldIndex < newIndex) {
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+		sync_wrlock(&(fs->bstLock[newIndex]));
+	}
+	else if (oldIndex > newIndex) {
+		sync_wrlock(&(fs->bstLock[newIndex]));
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+	}
+	else { // indexes are the same
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+	}
 
-		if(oldINumber && !lookup(fs, newNodeName)) {
-			fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
-			fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
-			sync_unlock(&(fs->bstLock[oldIndex]));
-			sync_unlock(&(fs->bstLock[newIndex]));
-		}
+	if(oldINumber && !lookup(fs, newNodeName)) { // swap lookup 
+		fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
+		fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
+	}
 
+	if(oldIndex == newIndex) {
+		sync_unlock(&(fs->bstLock[oldIndex]));
+	}
+	else {
 		sync_unlock(&(fs->bstLock[oldIndex]));
 		sync_unlock(&(fs->bstLock[newIndex]));
 	}
+	
 }
 
 void print_tecnicofs_tree(FILE *fp, tecnicofs *fs) {
