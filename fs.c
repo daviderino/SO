@@ -80,6 +80,7 @@ void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
 	int newIndex = hash(newNodeName, fs->hashSize);
 
 	while(1) {
+		// Apagar trylocks
 		if(!sync_trylock(&(fs->bstLock[oldIndex])) && !sync_trylock(&(fs->bstLock[newIndex]))) {
 			if(oldINumber && !lookup(fs, newNodeName)) {
 				fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
