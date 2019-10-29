@@ -91,7 +91,7 @@ void errorParse(int lineNumber){
 }
 
 void *processInput(){
-    FILE *inputFile = fopen(global_inputfile, "r");;
+    FILE *inputFile = fopen(global_inputfile, "r");
     
     char line[MAX_INPUT_SIZE];
     int lineNumber = 0;
@@ -179,6 +179,7 @@ void *applyCommands() {
             case 'c':
                 iNumber = obtainNewInumber(fs);
                 mutex_unlock(&commandsLock);
+                printf("Adding %s\n", name);
                 create(fs, name, iNumber);
                 break;
             case 'l':
@@ -189,6 +190,7 @@ void *applyCommands() {
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
+                printf("Removing %s\n", name);
                 delete(fs, name);
                 break;
             case 'r':
