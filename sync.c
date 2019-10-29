@@ -37,6 +37,10 @@ void sync_unlock(syncMech* sync) {
     }
 }
 
+int sync_trylock(syncMech * sync) {
+    return syncMech_try_lock(sync);
+}
+
 void mutex_init(pthread_mutex_t* mutex) {
     #if defined (RWLOCK) || defined (MUTEX)
         if(pthread_mutex_init(mutex, NULL) != 0) {

@@ -103,8 +103,9 @@ void *processInput(){
 
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
-        char name[MAX_INPUT_SIZE];
-        int numTokens = sscanf(line, "%c %s", &token, name);
+        char name1[MAX_INPUT_SIZE];
+        char name2[MAX_INPUT_SIZE];
+        int numTokens = sscanf(line, "%c %s %s", &token, name1, name2);
         lineNumber++;
 
         /* perform minimal validation */
@@ -112,6 +113,7 @@ void *processInput(){
             continue;
         }
         
+        int validate;
         semMech_wait(&semProducer);
         switch (token) {
             case 'c':
@@ -121,7 +123,7 @@ void *processInput(){
                     errorParse(lineNumber);
                 }
                 mutex_lock(&commandsLock);
-                int validate = insertCommand(line);
+                validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
 
                 if(validate){
@@ -129,12 +131,13 @@ void *processInput(){
                 }
                 return NULL;
             case 'r':
+
                 if(numTokens != 3) {
                     errorParse(lineNumber);
                 }
 
                 mutex_lock(&commandsLock);
-                int validate = insertCommand(line);
+                validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
 
                 if(insertCommand(line)){
@@ -189,7 +192,6 @@ void *applyCommands() {
             case 'c':
                 iNumber = obtainNewInumber(fs);
                 mutex_unlock(&commandsLock);
-                printf("Adding %s\n", name);
                 create(fs, name, iNumber);
                 break;
             case 'l':
@@ -200,7 +202,6 @@ void *applyCommands() {
                     printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
-                printf("Removing %s\n", name);
                 delete(fs, name);
                 break;
             case 'r':

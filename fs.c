@@ -57,21 +57,6 @@ void delete(tecnicofs* fs, char *name){
 	sync_unlock(&(fs->bstLock[i]));
 }
 
-void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
-	int oldINumber = lookup(fs, oldNodeName);
-	
-	if(oldINumber && !lookup(fs, newNodeName)) {
-		int oldIndex = hash(oldNodeName, fs->hashSize);
-		int newIndex = hash(newNodeName, fs->hashSize);
-		fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
-		fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
-	}
-	else {
-		// error?
-		return;
-	}
-}
-
 int lookup(tecnicofs* fs, char *name){
 	int i = hash(name, fs->hashSize);
 
@@ -79,11 +64,43 @@ int lookup(tecnicofs* fs, char *name){
 	int inumber = 0;
 	node* searchNode = search(fs->hashTable[i], name);
 
-	if ( searchNode )  {
+	if (searchNode)  {
 		inumber = searchNode->inumber;
 	}
 	sync_unlock(&(fs->bstLock[i]));
 	return inumber;
+}
+
+void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
+	int oldINumber = lookup(fs, oldNodeName);
+	const int CONST = 10;
+	int attempts = 0;
+
+	int oldIndex = hash(oldNodeName, fs->hashSize);
+	int newIndex = hash(newNodeName, fs->hashSize);
+
+	while(1) {
+		if(!sync_trylock(&(fs->bstLock[oldIndex])) && !sync_trylock(&(fs->bstLock[newIndex]))) {
+			if(oldINumber && !lookup(fs, newNodeName)) {
+				fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
+				fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
+				sync_unlock(&(fs->bstLock[oldIndex]));
+				sync_unlock(&(fs->bstLock[newIndex]));
+				break;
+			}
+			else {
+				sync_unlock(&(fs->bstLock[oldIndex]));
+				sync_unlock(&(fs->bstLock[newIndex]));
+				return;
+			}
+		}
+		else {
+			if(attempts == 5) 
+				break;
+			attempts++;
+			usleep(CONST * attempts);
+		}
+	}
 }
 
 void print_tecnicofs_tree(FILE *fp, tecnicofs *fs) {
