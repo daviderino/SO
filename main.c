@@ -120,13 +120,23 @@ void *processInput(){
                 if(numTokens != 2) {
                     errorParse(lineNumber);
                 }
-                if(insertCommand(line)){
+                mutex_lock(&commandsLock);
+                int validate = insertCommand(line);
+                mutex_unlock(&commandsLock);
+
+                if(validate){
                     break;
                 }
                 return NULL;
             case 'r':
-                if(numTokens != 3)
+                if(numTokens != 3) {
                     errorParse(lineNumber);
+                }
+
+                mutex_lock(&commandsLock);
+                int validate = insertCommand(line);
+                mutex_unlock(&commandsLock);
+
                 if(insertCommand(line)){
                     break;
                 }
@@ -210,7 +220,6 @@ void *applyCommands() {
     }
     return NULL;
 }
-
 
 void runThreads() {
      pthread_t producer;
