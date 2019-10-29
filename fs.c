@@ -73,34 +73,29 @@ int lookup(tecnicofs* fs, char *name){
 
 void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
 	int oldINumber = lookup(fs, oldNodeName);
-	const int CONST = 10;
-	int attempts = 0;
 
 	int oldIndex = hash(oldNodeName, fs->hashSize);
 	int newIndex = hash(newNodeName, fs->hashSize);
 
 	while(1) {
-		// Apagar trylocks
-		if(!sync_trylock(&(fs->bstLock[oldIndex])) && !sync_trylock(&(fs->bstLock[newIndex]))) {
-			if(oldINumber && !lookup(fs, newNodeName)) {
-				fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
-				fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
-				sync_unlock(&(fs->bstLock[oldIndex]));
-				sync_unlock(&(fs->bstLock[newIndex]));
-				break;
-			}
-			else {
-				sync_unlock(&(fs->bstLock[oldIndex]));
-				sync_unlock(&(fs->bstLock[newIndex]));
-				return;
-			}
+		if(oldIndex < newIndex) {
+			sync_wrlock(&(fs->bstLock[oldIndex]));
+			sync_wrlock(&(fs->bstLock[newIndex]));
 		}
 		else {
-			if(attempts == 5) 
-				break;
-			attempts++;
-			usleep(CONST * attempts);
+			sync_wrlock(&(fs->bstLock[newIndex]));
+			sync_wrlock(&(fs->bstLock[oldIndex]));
 		}
+
+		if(oldINumber && !lookup(fs, newNodeName)) {
+			fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
+			fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, oldINumber);
+			sync_unlock(&(fs->bstLock[oldIndex]));
+			sync_unlock(&(fs->bstLock[newIndex]));
+		}
+
+		sync_unlock(&(fs->bstLock[oldIndex]));
+		sync_unlock(&(fs->bstLock[newIndex]));
 	}
 }
 
