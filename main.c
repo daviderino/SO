@@ -219,7 +219,7 @@ void *applyCommands() {
                 break;
             case 'r':
                 if(name1 != NULL && name1 != NULL) {
-                    fs_rename(fs, name1, name2);
+                    swap_name(fs, name1, name2);
                 }
                 break;
             default: { /* error */

@@ -71,7 +71,7 @@ int lookup(tecnicofs* fs, char *name){
 	return inumber;
 }
 
-void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
+void swap_name(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
 	int oldINumber = lookup(fs, oldNodeName);
 
 	int oldIndex = hash(oldNodeName, fs->hashSize);

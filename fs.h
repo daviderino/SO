@@ -17,7 +17,7 @@ void free_tecnicofs(tecnicofs* fs);
 void create(tecnicofs* fs, char *name, int inumber);
 void delete(tecnicofs* fs, char *name);
 int lookup(tecnicofs* fs, char *name);
-void fs_rename(tecnicofs* fs, char *oldNodeName, char *newNodeName);
+void swap_name(tecnicofs* fs, char *oldNodeName, char *newNodeName);
 void print_tecnicofs_tree(FILE * fp, tecnicofs *fs);
 
 #endif
