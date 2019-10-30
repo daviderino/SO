@@ -11,7 +11,6 @@
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
-pthread_mutex_t flagLock;
 
 sem_t semProducer;
 sem_t semConsumer;
@@ -25,8 +24,6 @@ int headQueue = 0;
 
 int numberThreads = 0;
 int numberBuckets = 0;
-
-int producerActive = 1;
 
 FILE *openOutputFile() {
      FILE *fp;
@@ -76,13 +73,17 @@ int insertCommand(char* data) {
 }
 
 char* removeCommand() {
-     if((numberCommands > 0)){
-         char *ret = inputCommands[headQueue];
-         numberCommands--;
-         headQueue = (headQueue + 1) % MAX_COMMANDS;
-         return ret;
-     }
-     return NULL;
+    if((numberCommands > 0)){
+        char *ret = inputCommands[headQueue];
+
+        if(strcmp(ret, END_OF_COMMANDS)) {
+            numberCommands--;
+            headQueue = (headQueue + 1) % MAX_COMMANDS;
+
+        }
+        return ret;
+    }
+    return NULL;
 }
 
 void errorParse(int lineNumber){
@@ -126,7 +127,7 @@ void *processInput(){
                 validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
 
-                if(validate){
+                if(validate) {
                     break;
                 }
                 return NULL;
@@ -140,7 +141,7 @@ void *processInput(){
                 validate = insertCommand(line);
                 mutex_unlock(&commandsLock);
 
-                if(insertCommand(line)){
+                if(validate) {
                     break;
                 }
                 return NULL;
@@ -153,9 +154,15 @@ void *processInput(){
         semMech_post(&semConsumer);
     }
 
-    mutex_lock(&flagLock);
-    producerActive=0;
-    mutex_unlock(&flagLock);
+    semMech_wait(&semProducer);
+
+    mutex_lock(&commandsLock);
+    int validate = insertCommand(END_OF_COMMANDS);
+    mutex_unlock(&commandsLock);
+
+    if(!validate) {
+        perror("Error inserting end of file command");
+    }
 
     semMech_post(&semConsumer);
 
@@ -163,20 +170,27 @@ void *processInput(){
     return NULL;
 }
 
-void *applyCommands() {
-    while(producerActive || numberCommands) {
+void *applyCommands() {    
+    while(1) {        
         char token;
         char name1[MAX_INPUT_SIZE];
         char name2[MAX_INPUT_SIZE];
         
         semMech_wait(&semConsumer);
         mutex_lock(&commandsLock);
-        const char* command = removeCommand();
         
+        const char* command = removeCommand();
+
         if (command == NULL) {
             mutex_unlock(&commandsLock);
             semMech_post(&semProducer);
             continue;
+        }
+        
+        if(!strcmp(command, END_OF_COMMANDS)) {
+            mutex_unlock(&commandsLock);
+            semMech_post(&semConsumer);
+            break;
         }
 
         sscanf(command, "%c %s ", &token, name1);
@@ -267,7 +281,6 @@ int main(int argc, char* argv[]) {
     semMech_init(&semProducer, MAX_COMMANDS);
     semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
-    mutex_init(&flagLock);
 
     TIMER_READ(startTime);
     runThreads();
@@ -279,8 +292,10 @@ int main(int argc, char* argv[]) {
     outputFp = openOutputFile();
     print_tecnicofs_tree(outputFp, fs);
 
-    free_tecnicofs(fs);
     mutex_destroy(&commandsLock);
+    semMech_destroy(&semProducer);
+    semMech_destroy(&semConsumer);
+    free_tecnicofs(fs);
     closeOutputFile(outputFp);
     
     exit(EXIT_SUCCESS);
