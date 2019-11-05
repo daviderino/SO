@@ -12,7 +12,7 @@ int obtainNewInumber(tecnicofs* fs) {
 tecnicofs* new_tecnicofs(int hashSize){
 	int i;
 
-	tecnicofs*fs = malloc(sizeof(tecnicofs));
+	tecnicofs *fs = malloc(sizeof(tecnicofs));
 	if (!fs) {
 		perror("failed to allocate tecnicofs");
 		exit(EXIT_FAILURE);
@@ -33,10 +33,12 @@ tecnicofs* new_tecnicofs(int hashSize){
 
 void free_tecnicofs(tecnicofs* fs){
 	int i;
+	
 	for(i = 0; i < fs->hashSize; i++) {
 		free_tree(fs->hashTable[i]);
 		sync_destroy(&(fs->bstLock[i]));
 	}
+	
 	free(fs->hashTable);
 	free(fs);
 }
@@ -64,7 +66,7 @@ int lookup(tecnicofs* fs, char *name){
 	int inumber = 0;
 	node* searchNode = search(fs->hashTable[i], name);
 
-	if (searchNode)  {
+	if (searchNode) {
 		inumber = searchNode->inumber;
 	}
 	sync_unlock(&(fs->bstLock[i]));
@@ -77,6 +79,37 @@ void swap_name(tecnicofs* fs, char *oldNodeName, char *newNodeName) {
 
 	node *oldNode = NULL;
 	node *newNode = NULL;
+
+	if(oldIndex == newIndex) {
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+	}
+	else if(oldIndex < newIndex) {
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+		sync_wrlock(&(fs->bstLock[newIndex]));
+	}
+	else {
+		sync_wrlock(&(fs->bstLock[newIndex]));
+		sync_wrlock(&(fs->bstLock[oldIndex]));
+	}
+	
+	oldNode = search(fs->hashTable[oldIndex], oldNodeName);
+	newNode = search(fs->hashTable[newIndex], newNodeName);
+
+	if(oldNode != NULL && newNode == NULL) {
+		int inumber = oldNode->inumber;
+		fs->hashTable[oldIndex] = remove_item(fs->hashTable[oldIndex], oldNodeName);
+		fs->hashTable[newIndex] = insert(fs->hashTable[newIndex], newNodeName, inumber);
+	}
+
+	if(oldIndex == newIndex) {
+		sync_unlock(&(fs->bstLock[newIndex]));
+	}
+	else {
+		sync_unlock(&(fs->bstLock[newIndex]));
+		sync_unlock(&(fs->bstLock[oldIndex]));
+	}
+
+	return;
 }
 
 void print_tecnicofs_tree(FILE *fp, tecnicofs *fs) {
