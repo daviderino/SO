@@ -193,7 +193,7 @@ void *applyCommands() {
             break;
         }
 
-        sscanf(command, "%c %s ", &token, name1);
+        sscanf(command, "%c %s %s", &token, name1, name2);
 
         if(token != 'c') {
             mutex_unlock(&commandsLock);
@@ -218,7 +218,7 @@ void *applyCommands() {
                 delete(fs, name1);
                 break;
             case 'r':
-                if(name1 != NULL && name1 != NULL) {
+                if(name1 != NULL && name2 != NULL) {
                     swap_name(fs, name1, name2);
                 }
                 break;

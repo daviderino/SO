@@ -2,10 +2,11 @@
 #define FS_H
 
 #include "sync.h"
+#include "sem.h"
 #include "lib/bst.h"
 
 typedef struct tecnicofs {
-    node** hashTable;
+    node **hashTable;
     int hashSize;
     int nextINumber;
     syncMech *bstLock;
