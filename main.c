@@ -26,50 +26,55 @@ int numberThreads = 0;
 int numberBuckets = 0;
 
 FILE *openOutputFile() {
-     FILE *fp;
-     fp = fopen(global_outputfile, "w");
-     if(!fp) {
-         perror("Error opening output file");
-         exit(EXIT_FAILURE);
-     }
-     return fp;
+    FILE *fp;
+    fp = fopen(global_outputfile, "w");
+    if(!fp) {
+        perror("Error opening output file");
+        exit(EXIT_FAILURE);
+    }
+    return fp;
 }
 
 void closeOutputFile(FILE *outputFp) {
-     fflush(outputFp);
-     fclose(outputFp);
+    fflush(outputFp);
+    fclose(outputFp);
 }
 
 static void displayUsage (const char* appName){
-     printf("Usage: %s\n", appName);
-     exit(EXIT_FAILURE);
+    printf("Usage: %s\n", appName);
+    exit(EXIT_FAILURE);
 }
 
 static void parseArgs (long argc, char* const argv[]){
-     if (argc != 5) {
-         fprintf(stderr, "Invalid format:\n");
-         displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
-     }
+    if (argc != 5) {
+        fprintf(stderr, "Invalid format:\n");
+        displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
+    }
 
-     global_inputfile = argv[1];
-     global_outputfile = argv[2];
-     numberThreads = (int)strtol(argv[3], NULL, 10);
-     numberBuckets = (int)strtol(argv[4], NULL, 10);
+    global_inputfile = argv[1];
+    global_outputfile = argv[2];
+    numberThreads = (int)strtol(argv[3], NULL, 10);
+    numberBuckets = (int)strtol(argv[4], NULL, 10);
 
-     if(!numberThreads) {
-         fprintf(stderr, "Invalid thread number\n");
-     }
+    if(numberBuckets <= 0) {
+        fprintf(stderr, "Invalid buckets number\n");
+        exit(EXIT_FAILURE);
+    }
+    if(numberThreads <= 0) {
+        fprintf(stderr, "Invalid thread number\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int insertCommand(char* data) {
-     static int commandsPtr = 0;
-     if(numberCommands != MAX_COMMANDS) {
-         strcpy(inputCommands[commandsPtr], data);
-         commandsPtr = (commandsPtr + 1) % MAX_COMMANDS;
-         numberCommands++;
-         return 1;
-     }
-     return 0;
+    static int commandsPtr = 0;
+    if(numberCommands != MAX_COMMANDS) {
+        strcpy(inputCommands[commandsPtr], data);
+        commandsPtr = (commandsPtr + 1) % MAX_COMMANDS;
+        numberCommands++;
+        return 1;
+    }
+    return 0;
 }
 
 char* removeCommand() {
@@ -87,8 +92,8 @@ char* removeCommand() {
 }
 
 void errorParse(int lineNumber){
-     fprintf(stderr, "Error: line %d invalid\n", lineNumber);
-     exit(EXIT_FAILURE);
+    fprintf(stderr, "Error: line %d invalid\n", lineNumber);
+    exit(EXIT_FAILURE);
 }
 
 void *processInput(){
@@ -234,7 +239,7 @@ void *applyCommands() {
 }
 
 void runThreads() {
-     pthread_t producer;
+    pthread_t producer;
 
     if(pthread_create(&producer, NULL, processInput, NULL) != 0){
         perror("Can't create producer thread");

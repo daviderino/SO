@@ -1,14 +1,8 @@
 #!/bin/bash
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
 if [ $# -ne 4 ] ; then
-	echo -e "${RED}Invalid number of arguments ${NC}"
-	echo -e "${BLUE}Example: ./runTests.sh inputdir outputdir maxthreads numbuckets ${NC}"
+	echo -e "Invalid number of arguments"
+	echo -e "Example: ./runTests.sh inputdir outputdir maxthreads numbuckets"
 	exit 1
 fi
 
