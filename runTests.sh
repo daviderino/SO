@@ -20,23 +20,13 @@ NUMBUCKETS="$4"
 NOSYNC="tecnicofs-nosync"
 MUTEX="tecnicofs-mutex"
 
-GOOD=1
 for file_in in `ls -rS ${INPUTDIR}/*.txt`; do
-    file_out="${OUTPUTDIR}/${file_in#*/}"
-	echo "OUTPUT FILE ${file_out}"
-	if [${MAXTHREADS} == 1]; then
-		echo -e "InputFile=${file_in} NumThreads=1"
-		(./${NOSYNC} ${file_in} ${file_out} 1 ${NUMBUCKETS})
-	else
-		for ((i=2;i<=MAXTHREADS;i++)); do
-			echo -e "InputFile=${file_in} NumThreads=${i}"
-			(./${MUTEX} ${file_in} ${file_out} ${i} ${NUMBUCKETS})
-		done
-	fi
+	f=${file_in::-4}
+    file_out="${OUTPUTDIR}/${f#*/}"
+	echo -e "InputFile=${file_in} NumThreads=1"
+	(./${NOSYNC} ${file_in} ${file_out}-1.txt 1 ${NUMBUCKETS}) | grep "TecnicoFS completed"
+	for i in `seq 2 $MAXTHREADS`; do
+		echo -e "InputFile=${file_in} NumThreads=${i}"
+		(./${MUTEX} ${file_in} ${file_out}-${i}.txt ${i} ${NUMBUCKETS}) | grep "TecnicoFS completed"
+	done
 done
-
-if [ ${GOOD} == 1 ]; then
-    echo -e "${GREEN}+++++++++++++++++"
-    echo "Passed all tests"
-    echo -e "+++++++++++++++++${NC}"
-fi

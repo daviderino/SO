@@ -54,7 +54,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/tecnicofs-nosync",
-            "args": ["inputs/test3.txt", "output.txt", "4", "5"],
+            "args": ["inputs/test421.txt", "output.txt", "4", "5"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

@@ -1,4 +1,5 @@
 .idea/
+outputs/
 cmake-build-debug/
 CMakeLists.txt
 tecnicofs
