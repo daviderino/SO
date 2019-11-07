@@ -37,44 +37,32 @@ void sync_unlock(syncMech* sync) {
     }
 }
 
-int sync_trylock(syncMech * sync) {
-    return syncMech_try_lock(sync);
-}
-
 void mutex_init(pthread_mutex_t* mutex) {
-    #if defined (RWLOCK) || defined (MUTEX)
-        if(pthread_mutex_init(mutex, NULL) != 0) {
-            perror("mutex_init failed\n");
-            exit(EXIT_FAILURE);
-        }
-    #endif
+    if(pthread_mutex_init(mutex, NULL) != 0) {
+        perror("mutex_init failed\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void mutex_destroy(pthread_mutex_t* mutex) {
-    #if defined (RWLOCK) || defined (MUTEX)
-        if(pthread_mutex_destroy(mutex) != 0) {
-            perror("mutex_destroy failed\n");
-            exit(EXIT_FAILURE);
-        }
-    #endif
+    if(pthread_mutex_destroy(mutex) != 0) {
+        perror("mutex_destroy failed\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void mutex_lock(pthread_mutex_t* mutex) {
-    #if defined (RWLOCK) || defined (MUTEX)
-        if(pthread_mutex_lock(mutex) != 0) {
-            perror("mutex_lock failed");
-            exit(EXIT_FAILURE);
-        }
-    #endif
+    if(pthread_mutex_lock(mutex) != 0) {
+        perror("mutex_lock failed");
+        exit(EXIT_FAILURE);
+    }
 }
 
 void mutex_unlock(pthread_mutex_t* mutex) {
-    #if defined (RWLOCK) || defined (MUTEX)
-        if(pthread_mutex_unlock(mutex) != 0) {
-            perror("mutex_unlock failed");
-            exit(EXIT_FAILURE);
-        }
-     #endif
+    if(pthread_mutex_unlock(mutex) != 0) {
+        perror("mutex_unlock failed");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int do_nothing(void* a) {

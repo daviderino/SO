@@ -237,38 +237,46 @@ void runThreads() {
      pthread_t producer;
 
     if(pthread_create(&producer, NULL, processInput, NULL) != 0){
-         perror("Can't create producer thread");
-         exit(EXIT_FAILURE);
-     }
+        perror("Can't create producer thread");
+        exit(EXIT_FAILURE);
+    }
 
-     #if defined (RWLOCK) || defined (MUTEX)
-         pthread_t *workers = (pthread_t*) malloc(numberThreads *sizeof(pthread_t));
+    #if defined (RWLOCK) || defined (MUTEX)
+        pthread_t *workers = (pthread_t*) malloc(numberThreads *sizeof(pthread_t));
+        for(int i = 0; i < numberThreads; i++) {
+            int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
+            if (err != 0) {
+                perror("Can't create worker thread\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+    #else
+        pthread_t worker;
+        if(pthread_create(&worker, NULL, applyCommands, NULL)) {
+            perror("Can't create worker thread\n");
+            exit(EXIT_FAILURE);
+        }
+    #endif
 
-         for(int i = 0; i < numberThreads; i++) {
-             int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
-             if (err != 0) {
-                 perror("Can't create worker thread\n");
-                 exit(EXIT_FAILURE);
-             }
-         }
-     #else
-         applyCommands();
-     #endif
+    if(pthread_join(producer, NULL)) {
+        perror("Can't join producer tread\n");
+        exit(EXIT_FAILURE);
+    }
 
-     if(pthread_join(producer, NULL)) {
-         perror("Can't join producer tread\n");
-         exit(EXIT_FAILURE);
-     }
-
-     #if defined (RWLOCK) || defined (MUTEX)
-         for(int i = 0; i < numberThreads; i++) {
-             if(pthread_join(workers[i], NULL)) {
-                 perror("Can't join worker thread\n");
-                 exit(EXIT_FAILURE);
-             }
-         }
-         free(workers);
-     #endif
+    #if defined (RWLOCK) || defined (MUTEX)
+        for(int i = 0; i < numberThreads; i++) {
+            if(pthread_join(workers[i], NULL)) {
+                perror("Can't join worker thread\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        free(workers);
+    #else
+        if(pthread_join(worker, NULL)) {
+            perror("Can't join worker thread\n");
+            exit(EXIT_FAILURE);
+        }
+    #endif
 }
 
 int main(int argc, char* argv[]) {
