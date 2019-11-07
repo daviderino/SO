@@ -109,9 +109,9 @@ void *processInput(){
 
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
-        char name1[MAX_INPUT_SIZE];
-        char name2[MAX_INPUT_SIZE];
-        int numTokens = sscanf(line, "%c %s %s", &token, name1, name2);
+        char name[MAX_INPUT_SIZE];
+        char _rename[MAX_INPUT_SIZE];
+        int numTokens = sscanf(line, "%c %s %s", &token, name, _rename);
         lineNumber++;
 
         /* perform minimal validation */
@@ -178,8 +178,8 @@ void *processInput(){
 void *applyCommands() {    
     while(1) {        
         char token;
-        char name1[MAX_INPUT_SIZE];
-        char name2[MAX_INPUT_SIZE];
+        char name[MAX_INPUT_SIZE];
+        char _rename[MAX_INPUT_SIZE];
         
         semMech_wait(&semConsumer);
         mutex_lock(&commandsLock);
@@ -198,7 +198,7 @@ void *applyCommands() {
             break;
         }
 
-        sscanf(command, "%c %s %s", &token, name1, name2);
+        sscanf(command, "%c %s %s", &token, name, _rename);
 
         if(token != 'c') {
             mutex_unlock(&commandsLock);
@@ -210,21 +210,21 @@ void *applyCommands() {
             case 'c':
                 iNumber = obtainNewInumber(fs);
                 mutex_unlock(&commandsLock);
-                create(fs, name1, iNumber);
+                create(fs, name, iNumber);
                 break;
             case 'l':
-                searchResult = lookup(fs, name1);
+                searchResult = lookup(fs, name);
                 if(!searchResult)
-                    printf("%s not found\n", name1);
+                    printf("%s not found\n", name);
                 else
-                    printf("%s found with inumber %d\n", name1, searchResult);
+                    printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
-                delete(fs, name1);
+                delete(fs, name);
                 break;
             case 'r':
-                if(name1 != NULL && name2 != NULL) {
-                    swap_name(fs, name1, name2);
+                if(name != NULL && _rename != NULL) {
+                    swap_name(fs, name, _rename);
                 }
                 break;
             default: { /* error */
