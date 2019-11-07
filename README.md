@@ -1,3 +1,4 @@
 # SO Project
 
-Testing stuff
+Part1:✔️️
+Part2:✔️
