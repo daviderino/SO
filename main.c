@@ -36,8 +36,12 @@ FILE *openOutputFile() {
 }
 
 void closeOutputFile(FILE *outputFp) {
-    fflush(outputFp);
-    fclose(outputFp);
+    if(fflush(outputFp) != 0) {
+        perror("Error flushing output file");
+    }
+    if(fclose(outputFp) != 0) {
+        perror("Error closing output file");
+    }
 }
 
 static void displayUsage (const char* appName){
@@ -110,8 +114,8 @@ void *processInput(){
     while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
         char token;
         char name[MAX_INPUT_SIZE];
-        char _rename[MAX_INPUT_SIZE];
-        int numTokens = sscanf(line, "%c %s %s", &token, name, _rename);
+        char newName[MAX_INPUT_SIZE];
+        int numTokens = sscanf(line, "%c %s %s", &token, name, newName);
         lineNumber++;
 
         /* perform minimal validation */
@@ -171,7 +175,9 @@ void *processInput(){
 
     semMech_post(&semConsumer);
 
-    fclose(inputFile);
+    if(fclose(inputFile) != 0) {
+        perror("Error closing input file");
+    }
     return NULL;
 }
 
@@ -179,7 +185,7 @@ void *applyCommands() {
     while(1) {        
         char token;
         char name[MAX_INPUT_SIZE];
-        char _rename[MAX_INPUT_SIZE];
+        char newName[MAX_INPUT_SIZE];
         
         semMech_wait(&semConsumer);
         mutex_lock(&commandsLock);
@@ -198,7 +204,7 @@ void *applyCommands() {
             break;
         }
 
-        sscanf(command, "%c %s %s", &token, name, _rename);
+        sscanf(command, "%c %s %s", &token, name, newName);
 
         if(token != 'c') {
             mutex_unlock(&commandsLock);
@@ -223,8 +229,8 @@ void *applyCommands() {
                 delete(fs, name);
                 break;
             case 'r':
-                if(name != NULL && _rename != NULL) {
-                    swap_name(fs, name, _rename);
+                if(name != NULL && newName != NULL) {
+                    swap_name(fs, name, newName);
                 }
                 break;
             default: { /* error */
