@@ -1,9 +1,41 @@
 #!/bin/bash
 
+if [ $# -ne 4 ] ; then
+	echo "Invalid number of arguments"
+	echo "Example: ./runTests.sh inputdir outputdir maxthreads numbuckets"
+	exit 1
+fi
+
 INPUTDIR="$1"
 OUTPUTDIR="$2"
 MAXTHREADS="$3"
 NUMBUCKETS="$4"
+
+if [ ! -d $1 ]
+then
+	echo "Input folder non-existent"
+	exit 1
+fi
+
+
+if [ ! -d $2 ]
+then
+	echo "Output folder non-existent"
+	exit 1
+fi
+
+
+if (($3 <= 0))
+then
+	echo "Number of threads should be positive"
+	exit 1
+fi
+
+if (($4 <= 0))
+then
+	echo "Number of buckets should be positive"
+	exit 1
+fi
 
 NOSYNC="tecnicofs-nosync"
 MUTEX="tecnicofs-mutex"
