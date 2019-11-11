@@ -11,6 +11,20 @@ OUTPUTDIR="$2"
 MAXTHREADS="$3"
 NUMBUCKETS="$4"
 
+regex='^[0-9]+$'
+
+if ! [[ $3 =~ $regex ]]
+then
+	echo "Number of threads must be an integer"
+	exit 1
+fi
+
+if ! [[ $4 =~ $regex ]]
+then
+	echo "Number of buckets must be an integer"
+	exit 1
+fi
+
 if [ ! -d $1 ]
 then
 	echo "Input folder non-existent"
