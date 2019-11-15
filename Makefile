@@ -23,11 +23,13 @@ $(TARGETS):
 ### no sync ###
 lib/bst.o: lib/bst.c lib/bst.h
 lib/hash.o: lib/hash.c lib/hash.h
+lib/inodes.o: lib/inodes.c lib/inodes.h
+api-tests/client-api-test-create.o: api-tests/client-api-test-create.
 fs.o: fs.c fs.h lib/bst.h lib/hash.h
 sync.o: sync.c sync.h constants.h
 sem.o: sem.c sem.h
-main.o: main.c fs.h lib/bst.h lib/hash.o constants.h lib/timer.h sync.h sem.h
-tecnicofs-nosync: lib/bst.o lib/hash.o fs.o sync.o sem.o main.o
+main.o: main.c fs.h lib/bst.h lib/hash.o lib/inodes.o constants.h lib/timer.h sync.h sem.h
+tecnicofs-nosync: lib/bst.o lib/hash.o lib/inodes.o fs.o sync.o sem.o main.o
 
 ### MUTEX ###
 lib/bst-mutex.o: CFLAGS+=-DMUTEX
