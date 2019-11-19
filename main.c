@@ -4,6 +4,7 @@
 #include <strings.h>
 #include <pthread.h>
 #include <math.h>
+#include <signal.h>
 #include "constants.h"
 #include "fs.h"
 #include "sem.h"
@@ -13,9 +14,16 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include "lib/inodes.h"
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
+
+struct sockaddr_un server_addr;
+struct sockaddr_un client_addr;
+
+int sockfd;
+int canAccept = 1;
 
 sem_t semProducer;
 sem_t semConsumer;
@@ -162,18 +170,45 @@ void *applyCommands() {
     return NULL;
 }
 
+void session() {
+    inode_t *inodeTable = malloc(sizeof(inode_t)*5); 
+}
+
 void acceptClients() {
-    while(1) {
-        
+    int num_threads = 4;
+    pthread_t *slaves = (pthread_t*) malloc(num_threads * sizeof(pthread_t));
+    int i = 0;
+
+    while(canAccept) {
+        int client_dimension;
+        accept(sockfd, &client_addr, &client_dimension);
+        pthread_create(&slaves[i++], NULL, session, NULL);
+
+        if(i = num_threads) {
+            num_threads = num_threads + 4;
+            slaves = realloc(slaves, num_threads * sizeof(pthread_t));
+        }
     }
+}
+
+void handle_sigint() {
+    signal(SIGINT, handle_sigint);
+    canAccept = 0;
+}
+
+void setSignal() {
+    if (signal(SIGINT, handle_sigint) ) {
+        perror("Error while setting SIGINT\n");
+        exit(EXIT_FAILURE);
+    };
 }
 
 
 int main(int argc, char* argv[]) {
-    struct sockaddr_un serv_addr;
-
     TIMER_T startTime, endTime;
     FILE * outputFp;
+
+    setSignal();
 
     parseArgs(argc, argv);
     fs = new_tecnicofs(numberBuckets);
@@ -182,9 +217,9 @@ int main(int argc, char* argv[]) {
     semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
 
-    int sockfd = socketCreateStream();
-    int len_serv = socketNameStream(serv_addr, global_socketname);
-    socketBind(sockfd, serv_addr, len_serv);
+    sockfd = socketCreateStream();
+    int len_serv = socketNameStream(server_addr, global_socketname);
+    socketBind(sockfd, server_addr, len_serv);
     socketListen(sockfd, MAX_CONNECTIONS);
 
     TIMER_READ(startTime);
