@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <pthread.h>
 #include <math.h>
 #include "constants.h"
 #include "fs.h"
 #include "sem.h"
+#include "sock.h"
 #include "sync.h"
 #include "lib/timer.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
@@ -16,13 +21,12 @@ sem_t semProducer;
 sem_t semConsumer;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
-char *global_inputfile = NULL;
+char *global_socketname = NULL;
 char *global_outputfile = NULL;
 
 int numberCommands = 0;
 int headQueue = 0;
 
-int numberThreads = 0;
 int numberBuckets = 0;
 
 FILE *openOutputFile() {
@@ -50,22 +54,17 @@ static void displayUsage (const char* appName){
 }
 
 static void parseArgs (long argc, char* const argv[]){
-    if (argc != 5) {
+    if (argc != 3) {
         fprintf(stderr, "Invalid format:\n");
-        displayUsage("./tecnicofs inputfile outputfile numthreads numbuckets");
+        displayUsage("./tecnicofs nomesocket outputfile numbuckets");
     }
 
-    global_inputfile = argv[1];
+    global_socketname = argv[1];
     global_outputfile = argv[2];
-    numberThreads = (int)strtol(argv[3], NULL, 10);
-    numberBuckets = (int)strtol(argv[4], NULL, 10);
+    numberBuckets = (int)strtol(argv[3], NULL, 10);
 
     if(numberBuckets <= 0) {
         fprintf(stderr, "Invalid buckets number\n");
-        exit(EXIT_FAILURE);
-    }
-    if(numberThreads <= 0) {
-        fprintf(stderr, "Invalid thread number\n");
         exit(EXIT_FAILURE);
     }
 }
@@ -98,87 +97,6 @@ char* removeCommand() {
 void errorParse(int lineNumber){
     fprintf(stderr, "Error: line %d invalid\n", lineNumber);
     exit(EXIT_FAILURE);
-}
-
-void *processInput(){
-    FILE *inputFile = fopen(global_inputfile, "r");
-    
-    char line[MAX_INPUT_SIZE];
-    int lineNumber = 0;
-
-    if(!inputFile) {
-        fprintf(stderr, "Error: %s is an invalid file\n", global_inputfile);
-        exit(EXIT_FAILURE);
-    }
-
-    while (fgets(line, sizeof(line)/sizeof(char), inputFile)) {
-        char token;
-        char name[MAX_INPUT_SIZE];
-        char newName[MAX_INPUT_SIZE];
-        int numTokens = sscanf(line, "%c %s %s", &token, name, newName);
-        lineNumber++;
-
-        /* perform minimal validation */
-        if (numTokens < 1) {
-            continue;
-        }
-        
-        int validate;
-        semMech_wait(&semProducer);
-        switch (token) {
-            case 'c':
-            case 'l':
-            case 'd':
-                if(numTokens != 2) {
-                    errorParse(lineNumber);
-                }
-                mutex_lock(&commandsLock);
-                validate = insertCommand(line);
-                mutex_unlock(&commandsLock);
-
-                if(validate) {
-                    break;
-                }
-                return NULL;
-            case 'r':
-
-                if(numTokens != 3) {
-                    errorParse(lineNumber);
-                }
-
-                mutex_lock(&commandsLock);
-                validate = insertCommand(line);
-                mutex_unlock(&commandsLock);
-
-                if(validate) {
-                    break;
-                }
-                return NULL;
-            case '#':
-                break;
-            default: { /* error */
-                errorParse(lineNumber);
-            }
-        }
-        semMech_post(&semConsumer);
-    }
-
-    semMech_wait(&semProducer);
-
-    mutex_lock(&commandsLock);
-    int validate = insertCommand(END_OF_COMMANDS);
-    mutex_unlock(&commandsLock);
-
-    if(!validate) {
-        perror("Error inserting end of file command");
-    }
-
-    semMech_post(&semConsumer);
-
-    if(fclose(inputFile) != 0) {
-        perror("Error closing input file");
-    }
-    return NULL;
 }
 
 void *applyCommands() {    
@@ -244,53 +162,16 @@ void *applyCommands() {
     return NULL;
 }
 
-void runThreads() {
-    pthread_t producer;
-
-    if(pthread_create(&producer, NULL, processInput, NULL) != 0){
-        perror("Can't create producer thread");
-        exit(EXIT_FAILURE);
+void acceptClients() {
+    while(1) {
+        
     }
-
-    #if defined (RWLOCK) || defined (MUTEX)
-        pthread_t *workers = (pthread_t*) malloc(numberThreads *sizeof(pthread_t));
-        for(int i = 0; i < numberThreads; i++) {
-            int err = pthread_create(&workers[i], NULL, applyCommands, NULL);
-            if (err != 0) {
-                perror("Can't create worker thread\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    #else
-        pthread_t worker;
-        if(pthread_create(&worker, NULL, applyCommands, NULL)) {
-            perror("Can't create worker thread\n");
-            exit(EXIT_FAILURE);
-        }
-    #endif
-
-    if(pthread_join(producer, NULL)) {
-        perror("Can't join producer tread\n");
-        exit(EXIT_FAILURE);
-    }
-
-    #if defined (RWLOCK) || defined (MUTEX)
-        for(int i = 0; i < numberThreads; i++) {
-            if(pthread_join(workers[i], NULL)) {
-                perror("Can't join worker thread\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-        free(workers);
-    #else
-        if(pthread_join(worker, NULL)) {
-            perror("Can't join worker thread\n");
-            exit(EXIT_FAILURE);
-        }
-    #endif
 }
 
+
 int main(int argc, char* argv[]) {
+    struct sockaddr_un serv_addr;
+
     TIMER_T startTime, endTime;
     FILE * outputFp;
 
@@ -301,8 +182,13 @@ int main(int argc, char* argv[]) {
     semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
 
+    int sockfd = socketCreateStream();
+    int len_serv = socketNameStream(serv_addr, global_socketname);
+    socketBind(sockfd, serv_addr, len_serv);
+    socketListen(sockfd, MAX_CONNECTIONS);
+
     TIMER_READ(startTime);
-    runThreads();
+    acceptClients();
     TIMER_READ(endTime);
     
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n",
@@ -314,6 +200,7 @@ int main(int argc, char* argv[]) {
     mutex_destroy(&commandsLock);
     semMech_destroy(&semProducer);
     semMech_destroy(&semConsumer);
+    
     free_tecnicofs(fs);
     closeOutputFile(outputFp);
     

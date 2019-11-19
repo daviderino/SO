@@ -5,6 +5,9 @@
         "hash.h": "c",
         "fs.h": "c",
         "sem.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "constants.h": "c",
+        "math.h": "c",
+        "sock.h": "c"
     }
 }
