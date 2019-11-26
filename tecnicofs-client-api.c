@@ -49,14 +49,17 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
     sprintf(buffer, "c %s %d%d", filename, ownerPermissions, othersPermissions);
 
     if(write(sockfd, buffer, BUFFSIZE) < 0) {
-        // Error
+        return TECNICOFS_ERROR_OTHER;
     }
 
     if(read(sockfd, buffer, BUFFSIZE) < 0) {
-        // Error
+        return TECNICOFS_ERROR_OTHER;
     }
 
-    // Outra validacao
+    if(!strcmp(buffer, "FILE_EXISTS")) {
+        return TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
+    }
+
 
     return 0;
 }
