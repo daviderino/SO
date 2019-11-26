@@ -161,6 +161,5 @@ int tfsWrite(int fd, char *buffer, int len) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-
     return ret;
 }
