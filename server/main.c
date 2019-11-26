@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,6 +16,17 @@
 #include "sem.h"
 #include "sock.h"
 #include "sync.h"
+
+#define BUFFSIZE 512
+
+typedef struct input_t {
+    int iNumber;
+    int fd;
+    int mode;
+    //file opened:flag=1
+    int flag;
+} input_t;
+
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
@@ -107,31 +119,19 @@ void errorParse(int lineNumber){
     exit(EXIT_FAILURE);
 }
 
-void *applyCommands() {    
+int applyCommands(char *args) {    
     while(1) {        
         char token;
         char name[MAX_INPUT_SIZE];
         char newName[MAX_INPUT_SIZE];
+        char token,arg1,arg2;
+
         
         semMech_wait(&semConsumer);
         mutex_lock(&commandsLock);
-        
-        const char* command = removeCommand();
 
-        if (command == NULL) {
-            mutex_unlock(&commandsLock);
-            semMech_post(&semProducer);
-            continue;
-        }
-        
-        if(!strcmp(command, END_OF_COMMANDS)) {
-            mutex_unlock(&commandsLock);
-            semMech_post(&semConsumer);
-            break;
-        }
-
-        sscanf(command, "%c %s %s", &token, name, newName);
-
+        sscanf(args, "%c %s %s", token, arg1, arg2);
+      
         if(token != 'c') {
             mutex_unlock(&commandsLock);
         }
@@ -143,13 +143,6 @@ void *applyCommands() {
                 iNumber = obtainNewInumber(fs);
                 mutex_unlock(&commandsLock);
                 create(fs, name, iNumber);
-                break;
-            case 'l':
-                searchResult = lookup(fs, name);
-                if(!searchResult)
-                    printf("%s not found\n", name);
-                else
-                    printf("%s found with inumber %d\n", name, searchResult);
                 break;
             case 'd':
                 delete(fs, name);
@@ -170,8 +163,223 @@ void *applyCommands() {
     return NULL;
 }
 
-void *session() {
-//    inode_t *inodeTable = malloc(sizeof(inode_t)*5); 
+void *session( void * sockfd) {
+    input_t *vector = malloc(sizeof(input_t)*5); 
+    char buffer[BUFFSIZE];
+    char token,arg1,arg2;
+    struct ucred ucred;
+
+    int socketFd = *((int *) sockfd);
+
+    if(getsockopt(socketFd, SOL_SOCKET, SO_PEERCRED, &ucred, NULL) < 0)
+        perror("Error when calling getsockopt");
+
+    for(int i=0;i<5;i++)
+        vector[i].flag=0;
+
+    while(read(socketFd,buffer,BUFFSIZE)>0){
+        
+        sscanf(buffer, "%c %s %s", token, arg1, arg2);
+        int error;
+        char *args;
+        uid_t owner;
+        int othersPerm;
+
+        switch(token){
+            case 'c':
+                if(lookup(fs,arg1)) {
+                    error= TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+                
+                applyCommands(buffer);
+                break;
+
+            case 'd':
+                int iNumber=lookup(fs,arg1);
+
+                if(!iNumber) {
+                    error= TECNICOFS_ERROR_FILE_NOT_FOUND;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                if(inode_get(iNumber, &owner, NULL, NULL, NULL, 0) < 0){
+                    perror("Error when calling inode_get");
+                    break;
+                }
+                    
+                if(owner != ucred.uid) {
+                    error = TECNICOFS_ERROR_PERMISSION_DENIED;
+                    write(socketFd, (void*)&error, sizeof(error));
+                    break;
+                }
+
+                    
+                applyCommands(buffer);
+                break;
+            
+            case 'r':
+                int iNumberOld=lookup(fs,arg1);
+                int iNumberNew=lookup(fs,arg1);
+
+                if(!iNumberOld) {
+                    error= TECNICOFS_ERROR_FILE_NOT_FOUND;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                if(iNumberNew){
+                    error= TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                if(inode_get(iNumberOld, &owner, NULL, NULL, NULL, 0) < 0){
+                    perror("Error when calling inode_get");
+                    break;
+                }
+                    
+                if(owner != ucred.uid) {
+                    error = TECNICOFS_ERROR_PERMISSION_DENIED;
+                    write(socketFd, (void*)&error, sizeof(error));
+                    break;
+                }
+
+                applyCommands(buffer);
+                break;
+
+            case 'o':
+                int counter=0;
+
+                //counts the number of opened files
+                for(int i=0;i<5;i++)
+                    if (vector[i].flag==1)
+                        counter++;
+
+                if(counter==5){
+                    error = TECNICOFS_ERROR_MAXED_OPEN_FILES;
+                    write(socketFd, (void*)&error, sizeof(error));
+                    break;
+                }
+
+                int iNumber=lookup(fs,arg1);
+
+                if(!iNumber) {
+                    error= TECNICOFS_ERROR_FILE_NOT_FOUND;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+
+                if(inode_get(iNumber, NULL, NULL, &othersPerm, NULL, 0) < 0){
+                    perror("Error when calling inode_get");
+                    break;
+                }
+
+                int mode= (int)strtol(arg2,NULL,10);
+
+                if(othersPerm != mode){
+                    error= TECNICOFS_ERROR_PERMISSION_DENIED;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                int fd= open(arg1,mode);
+
+                for(int i=0;i<5;i++)
+                    if(vector[i].flag==0){
+                        vector[i].flag=1;
+                        vector[i].mode=mode;
+                        vector[i].fd=fd;
+                        vector[i].iNumber=iNumber;
+                        break;
+                    }
+
+
+                break;
+
+            case 'x':
+                int counter = 0;
+                int fd = (int)strtol(arg1,NULL,10);
+
+                 for(int i=0;i<5;i++)
+                    if (vector[i].fd==fd)
+                        counter++;
+
+                if(!counter){
+                    error= TECNICOFS_ERROR_FILE_NOT_OPEN;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                close(fd);
+                break;
+
+            case 'l':
+                int iNumber = 0;
+                int fd = (int)strtol(arg1,NULL,10);
+                int len= (int)strtol(arg2,NULL,10);
+                char *buffer;
+
+                for(int i=0;i<5;i++)
+                    if (vector[i].fd==fd){
+                        iNumber=vector[i].iNumber;
+
+                        //verifies the mode client opened the file
+                        if(vector[i].mode!=READ || vector[i].mode!=RW){
+                            error= TECNICOFS_ERROR_INVALID_MODE;
+                            write(socketFd, (void *)&error, sizeof(error));
+                            break;
+                        }
+                        break;
+                    }
+
+                if(!iNumber){
+                    error= TECNICOFS_ERROR_FILE_NOT_OPEN;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                if(inode_get(iNumber, NULL, NULL, NULL,buffer ,len) < 0){
+                    perror("Error when calling inode_get");
+                    break;
+                }
+
+                write(socketFd,buffer,len);
+                break;
+
+            case 'w':
+                int iNumber = 0;
+                int fd = (int)strtol(arg1,NULL,10);
+                 
+                for(int i=0;i<5;i++)
+                   if (vector[i].fd==fd){
+                       iNumber=vector[i].iNumber;  
+
+                       //verifies the mode client opened the file                       
+                       if(vector[i].mode!=WRITE || vector[i].mode!=RW){
+                           error= TECNICOFS_ERROR_INVALID_MODE;
+                           write(socketFd, (void *)&error, sizeof(error));
+                           break;
+                       }
+                       break;
+                   }
+
+                
+                if(!iNumber){
+                    error= TECNICOFS_ERROR_FILE_NOT_OPEN;
+                    write(socketFd, (void *)&error, sizeof(error));
+                    break;
+                }
+
+                inode_set(iNumber,arg2,strlen(arg2));
+                break;
+
+        }
+    }
+
     return NULL;
 }
 
@@ -181,9 +389,9 @@ void acceptClients() {
     int i = 0;
 
     while(canAccept) {
-        //int client_dimension;
-        // accept(sockfd, &client_addr, &client_dimension);
-        pthread_create(&slaves[i++], NULL, session, NULL);
+        int client_dimension;
+        int newsockfd=accept(sockfd, &client_addr, &client_dimension);
+        pthread_create(&slaves[i++], NULL, session, (void *) newsockfd);
 
         if(i == num_threads) {
             num_threads = num_threads + 4;
