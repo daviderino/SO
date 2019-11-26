@@ -8,6 +8,7 @@
         "stdio.h": "c",
         "constants.h": "c",
         "math.h": "c",
-        "sock.h": "c"
+        "sock.h": "c",
+        "tecnicofs-api-constants.h": "c"
     }
 }

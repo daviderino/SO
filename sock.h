@@ -3,14 +3,14 @@
 
 #include <string.h>
 #include <strings.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
-int socketCreateStream();
-int socketNameStream(struct sockaddr_un serv_addr, char *name);
+int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length);
 void socketBind(int sockfd, struct sockaddr_un serv_addr, int len_serv);
 void socketListen(int sockfd,int n);
 

@@ -5,16 +5,16 @@
 #include <pthread.h>
 #include <math.h>
 #include <signal.h>
-#include "constants.h"
-#include "fs.h"
-#include "sem.h"
-#include "sock.h"
-#include "sync.h"
 #include "lib/timer.h"
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include "lib/inodes.h"
+#include "constants.h"
+#include "fs.h"
+#include "sem.h"
+#include "sock.h"
+#include "sync.h"
 
 tecnicofs* fs;
 pthread_mutex_t commandsLock;
@@ -170,8 +170,10 @@ void *applyCommands() {
     return NULL;
 }
 
-void session() {
-    inode_t *inodeTable = malloc(sizeof(inode_t)*5); 
+// What is this for?
+void *session() {
+//    inode_t *inodeTable = malloc(sizeof(inode_t)*5); 
+    return NULL;
 }
 
 void acceptClients() {
@@ -180,11 +182,11 @@ void acceptClients() {
     int i = 0;
 
     while(canAccept) {
-        int client_dimension;
-        accept(sockfd, &client_addr, &client_dimension);
+        //int client_dimension;
+        // accept(sockfd, &client_addr, &client_dimension);
         pthread_create(&slaves[i++], NULL, session, NULL);
 
-        if(i = num_threads) {
+        if(i == num_threads) {
             num_threads = num_threads + 4;
             slaves = realloc(slaves, num_threads * sizeof(pthread_t));
         }
@@ -200,13 +202,13 @@ void setSignal() {
     if (signal(SIGINT, handle_sigint) ) {
         perror("Error while setting SIGINT\n");
         exit(EXIT_FAILURE);
-    };
+    }
 }
-
 
 int main(int argc, char* argv[]) {
     TIMER_T startTime, endTime;
     FILE * outputFp;
+    int server_len;
 
     setSignal();
 
@@ -217,10 +219,7 @@ int main(int argc, char* argv[]) {
     semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
 
-    sockfd = socketCreateStream();
-    int len_serv = socketNameStream(server_addr, global_socketname);
-    socketBind(sockfd, server_addr, len_serv);
-    socketListen(sockfd, MAX_CONNECTIONS);
+    sockfd = serverSocketMount(server_addr, global_socketname, &server_len);
 
     TIMER_READ(startTime);
     acceptClients();

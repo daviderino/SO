@@ -11,7 +11,8 @@ CC   = gcc
 LD   = gcc
 CFLAGS =-Wall -std=gnu99 -I../ -g
 LDFLAGS=-lm -pthread
-TARGETS = tecnicofs-nosync tecnicofs-mutex tecnicofs-rwlock
+#TARGETS = tecnicofs-nosync tecnicofs-mutex tecnicofs-rwlock
+TARGETS = tecnicofs-rwlock
 
 .PHONY: all clean
 
@@ -33,6 +34,7 @@ api-tests/client-api-test-success.o: api-tests/client-api-test-success.c tecnico
 fs.o: fs.c fs.h lib/bst.h lib/hash.h lib/inodes.h
 sync.o: sync.c sync.h constants.h
 sem.o: sem.c sem.h
+sock.o: sock.c sock.h
 
 main.o: main.c fs.h lib/bst.h lib/hash.o lib/inodes.o constants.h lib/timer.h sync.h sem.h
 tecnicofs-nosync: lib/bst.o lib/hash.o lib/inodes.o fs.o sync.o sem.o main.o
@@ -60,10 +62,14 @@ sync-mutex.o: CFLAGS+=-DMUTEX
 sync-mutex.o: sync.c sync.h constants.h
 sem-mutex.o: CFLAGS+=-DMUTEX
 sem-mutex.o: sem.c sem.h
+sock-mutex.o: CFLAGS+=-DMUTEX
+sock-mutex.o: sock.c sock.h
+tecnicofs-client-api-mutex.o: CFLAGS+=-DMUTEX
+tecnicofs-client-api-mutex.o: tecnicofs-client-api.c tecnicofs-client-api.h
 
 main-mutex.o: CFLAGS+=-DMUTEX
-main-mutex.o: main.c fs.h lib/bst.h constants.h lib/timer.h sync.h sem.h
-tecnicofs-mutex: lib/bst-mutex.o lib/hash-mutex.o lib/inodes.o fs-mutex.o sync-mutex.o sem-mutex.o main-mutex.o
+main-mutex.o: main.c fs.h lib/bst.h constants.h lib/timer.h sync.h sem.h sock.h
+tecnicofs-mutex: lib/bst-mutex.o lib/hash-mutex.o lib/inodes.o fs-mutex.o sync-mutex.o sem-mutex.o sock-mutex.o tecnicofs-client-api-mutex.o main-mutex.o
 
 ### RWLOCK ###
 lib/bst-rwlock.o: CFLAGS+=-DRWLOCK
@@ -89,10 +95,14 @@ sync-rwlock.o: CFLAGS+=-DRWLOCK
 sync-rwlock.o: sync.c sync.h constants.h
 sem-rwlock.o: CFLAGS+=-DRWLOCK
 sem-rwlock.o: sem.c sem.h
+sock-rwlock.o: CFLAGS+=-DMUTEX
+sock-rwlock.o: sock.c sock.h
+tecnicofs-client-api-rwlock.o: CFLAGS+=-RWLOCK
+tecnicofs-client-api-rwlock.o: tecnicofs-client-api.c tecnicofs-client-api.h
 
 main-rwlock.o: CFLAGS+=-DRWLOCK
 main-rwlock.o: main.c fs.h lib/bst.h lib/hash.o lib/inodes.h constants.h lib/timer.h sync.h sem.h
-tecnicofs-rwlock: lib/bst-rwlock.o lib/hash-rwlock.o lib/inodes-rwlock.o fs-rwlock.o sync-rwlock.o sem-rwlock.o main-rwlock.o
+tecnicofs-rwlock: lib/bst-rwlock.o lib/hash-rwlock.o lib/inodes-rwlock.o fs-rwlock.o sync-rwlock.o sem-rwlock.o sock-mutex.o tecnicofs-client-api-mutex.o main-rwlock.o
 
 %.o:
 	$(CC) $(CFLAGS) -c -o $@ $<
