@@ -45,6 +45,7 @@ int tfsUnmount() {
 
 int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
     char buffer[BUFFSIZE];
+    int ret;
 
     sprintf(buffer, "c %s %d%d", filename, ownerPermissions, othersPermissions);
 
@@ -52,20 +53,16 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(!strcmp(buffer, "FILE_EXISTS")) {
-        return TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-    }
-
-
-    return 0;
+    return ret;
 }
 
 int tfsOpen (char *filename, int mode){
     char buffer[BUFFSIZE];
+    int ret;
 
     sprintf(buffer, "o %s %d", filename, mode);
 
@@ -73,23 +70,11 @@ int tfsOpen (char *filename, int mode){
         return TECNICOFS_ERROR_OTHER;
     }
 
-     if(read(sockfd, buffer, BUFFSIZE) < 0) {
+     if(read(sockfd,ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(!strcmp(buffer, "PERMISSION_DENIED")) {
-        return TECNICOFS_ERROR_PERMISSION_DENIED;
-    }
-
-    if(!strcmp(buffer, "FILE_DOESNT_EXISTS")) {
-        return TECNICOFS_ERROR_FILE_NOT_FOUND;
-    }
-
-    if(!strcmp(buffer, "MAX_FILES_OPEN")) {
-        return TECNICOFS_ERROR_MAXED_OPEN_FILES;
-    }
-
-    return (int)strtol(buffer,NULL,10);
+    return ret;
 
 }
 
@@ -106,12 +91,13 @@ int tfsRead (int fd, char *buffer, int len){
         return TECNICOFS_ERROR_OTHER;
     }
 
-    return strlen(buffer);
+    return (int)strtol(buffer[0]);
 
 }
 
 int tfsClose(int fd){
     char buffer[BUFFSIZE];
+    int ret;
 
     sprintf(buffer, "c %d", fd);
 
@@ -119,16 +105,17 @@ int tfsClose(int fd){
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+    if(read(sockfd,ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    return 0;
+    return ret;
 }
   
 
 int tfsDelete(char *filename) {
     char buffer[BUFFSIZE];
+    int ret;
 
     sprintf(buffer, "d %s", filename);
 
@@ -136,19 +123,16 @@ int tfsDelete(char *filename) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+    if(read(sockfd,ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(!strcmp(buffer, "WRONG_UID")) {
-        return TECNICOFS_ERROR_PERMISSION_DENIED;
-    }
-
-    return 0;
+    return ret;
 }
 
 int tfsRename(char *filenameOld, char *filenameNew) {
     char buffer[BUFFSIZE];
+    int ret;
 
     sprintf(buffer, "r %s %s", filenameOld, filenameNew);
 
@@ -156,27 +140,16 @@ int tfsRename(char *filenameOld, char *filenameNew) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(!strcmp(buffer, "OLD_NAME_WRONG")) {
-        return TECNICOFS_ERROR_FILE_NOT_FOUND;
-    }
-
-    if(!strcmp(buffer, "NEW_NAME_WRONG")) {
-        return TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-    }
-
-    if(!strcmp(buffer, "WRONG_UID")) {
-        return TECNICOFS_ERROR_PERMISSION_DENIED;
-    }
-
-    return 0;
+    return ret;
 }
 
 int tfsWrite(int fd, char *buffer, int len) {
     char buff[BUFFSIZE];
+    int ret;
 
     sprintf(buff, "w %d %s", fd, buffer);
 
@@ -184,13 +157,10 @@ int tfsWrite(int fd, char *buffer, int len) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+    if(read(sockfd,ret, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(!strcmp(buffer, "FILE_NOT_OPEN")) {
-        return TECNICOFS_ERROR_FILE_NOT_OPEN;
-    }
 
-    return 0;
+    return ret;
 }
