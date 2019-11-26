@@ -11,7 +11,5 @@
 #include <sys/un.h>
 
 int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length);
-void socketBind(int sockfd, struct sockaddr_un serv_addr, int len_serv);
-void socketListen(int sockfd,int n);
 
 #endif
