@@ -170,7 +170,6 @@ void *applyCommands() {
     return NULL;
 }
 
-// What is this for?
 void *session() {
 //    inode_t *inodeTable = malloc(sizeof(inode_t)*5); 
     return NULL;
