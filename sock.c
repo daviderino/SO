@@ -20,11 +20,13 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
     strcpy(server_addr.sun_path, name);
     *length = strlen(server_addr.sun_path) + sizeof(server_addr.sun_family);
 
+    // Not sure
     if(bind(sockfd, (struct sockaddr*)&server_addr, *length) < 0) {
         perror("Failed to bind local address");
         return - 1;
     }   
-
+    
+    // Not sure
     if(listen(sockfd, MAX_CONNECTIONS) < 0) {
         perror("Error while listening");
         return - 1;

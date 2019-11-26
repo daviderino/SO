@@ -41,8 +41,13 @@ int tfsUnmount() {
     return 0;
 }
 
+int tfsOpen(char *filename, int mode) {
+
+}
+
 int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
-    int inumber = inode_create(getpid(), ownerPermissions, othersPermissions);
+    int inumber = inode_create(getuid(), ownerPermissions, othersPermissions);
+    
     
     return 0;
 }
