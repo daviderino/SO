@@ -7,6 +7,8 @@
 #include "tecnicofs-api-constants.h"
 #include "lib/inodes.h"
 
+#define BUFFSIZE 512
+
 int sockfd = -1;
 
 int tfsMount(char *address) {
@@ -41,13 +43,20 @@ int tfsUnmount() {
     return 0;
 }
 
-int tfsOpen(char *filename, int mode) {
-
-}
-
 int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
-    int inumber = inode_create(getuid(), ownerPermissions, othersPermissions);
-    
-    
+    char buffer[BUFFSIZE];
+
+    sprintf(buffer, "c %s %d%d", filename, ownerPermissions, othersPermissions);
+
+    if(write(sockfd, buffer, BUFFSIZE) < 0) {
+        // Error
+    }
+
+    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+        // Error
+    }
+
+    // Outra validacao
+
     return 0;
 }
