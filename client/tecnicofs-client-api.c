@@ -53,7 +53,7 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, ret, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -70,20 +70,19 @@ int tfsOpen (char *filename, int mode){
         return TECNICOFS_ERROR_OTHER;
     }
 
-     if(read(sockfd,ret, BUFFSIZE) < 0) {
+     if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
     return ret;
-
 }
 
-int tfsRead (int fd, char *buffer, int len){
+int tfsRead(int fd, char *buffer, int len){
     char buff[BUFFSIZE];
 
     sprintf(buff, "l %d %d", fd, len);
 
-     if(write(sockfd, buff,BUFFSIZE) < 0) {
+     if(write(sockfd, buff, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -91,8 +90,7 @@ int tfsRead (int fd, char *buffer, int len){
         return TECNICOFS_ERROR_OTHER;
     }
 
-    return (int)strtol(buffer[0]);
-
+    return (int)strtol(buffer[0], NULL, 10);
 }
 
 int tfsClose(int fd){
@@ -105,7 +103,7 @@ int tfsClose(int fd){
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd,ret, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -123,7 +121,7 @@ int tfsDelete(char *filename) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd,ret, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -140,7 +138,7 @@ int tfsRename(char *filenameOld, char *filenameNew) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, ret, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -157,7 +155,7 @@ int tfsWrite(int fd, char *buffer, int len) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd,ret, BUFFSIZE) < 0) {
+    if(read(sockfd, ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
