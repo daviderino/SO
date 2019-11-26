@@ -114,7 +114,17 @@ int tfsClose(int fd){
     char buffer[BUFFSIZE];
 
     sprintf(buffer, "c %d", fd);
-  
+
+    if(write(sockfd, buffer, BUFFSIZE) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    if(read(sockfd, buffer, BUFFSIZE) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    return 0;
+}
   
 
 int tfsDelete(char *filename) {
@@ -168,7 +178,7 @@ int tfsRename(char *filenameOld, char *filenameNew) {
 int tfsWrite(int fd, char *buffer, int len) {
     char buff[BUFFSIZE];
 
-    sprintf(buff, "w %s %d", fd, buffer);
+    sprintf(buff, "w %d %s", fd, buffer);
 
     if(write(sockfd, buffer, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
