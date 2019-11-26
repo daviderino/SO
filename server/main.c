@@ -314,6 +314,10 @@ void *session( void * sockfd) {
                     break;
                 }
 
+                for(int i=0;i<5;i++)
+                    if (vector[i].fd==fd)
+                        vector[i].flag=0;
+
                 close(fd);
                 break;
 
