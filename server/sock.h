@@ -11,5 +11,6 @@
 #include <sys/un.h>
 
 int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length);
+int serverSocketUnmount();
 
 #endif
