@@ -1,8 +1,10 @@
 #include "constants.h"
 #include "sock.h"
 
+int sockfd = -1;
+
 int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
-    int sockfd;
+    sockfd;
 
     if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation failed");
@@ -22,13 +24,27 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
 
     if(bind(sockfd, (struct sockaddr*)&server_addr, *length) < 0) {
         perror("Failed to bind local address");
-        return - 1;
+        return -1;
     }   
-   
+
     if(listen(sockfd, MAX_CONNECTIONS) < 0) {
         perror("Error while listening");
-        return - 1;
+        return -1;
     }
 
     return sockfd;
+}
+
+int serverSocketUnmount() {
+    if(sockfd == -1) {
+        perror("Error when unbinding server socket");
+        return -1;
+    }
+
+    if(close(sockfd) != 0) {
+        perror("Error when unbinding server socket");
+        return -1;
+    }
+
+    return 0;
 }
