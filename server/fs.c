@@ -63,7 +63,7 @@ int lookup(tecnicofs* fs, char *name){
 	int i = hash(name, fs->hashSize);
 
 	sync_rdlock(&(fs->bstLock[i]));
-	int inumber = 0;
+	int inumber = -1;
 	node* searchNode = search(fs->hashTable[i], name);
 
 	if (searchNode) {
