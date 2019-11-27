@@ -16,3 +16,4 @@ main_nosync.o
 main_rwlock.o
 *.o
 lib/*.o
+*.out

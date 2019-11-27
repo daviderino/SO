@@ -8,7 +8,7 @@
             "name": "Client",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/client/tecnicofs-client",
+            "program": "${workspaceFolder}/client/a.out",
             "args": ["~/temp/sock"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

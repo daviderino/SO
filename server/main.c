@@ -118,8 +118,6 @@ void errorParse(int lineNumber){
 
 void applyCommands(char *args) {    
     char token;
-    char name[MAX_INPUT_SIZE];
-    char newName[MAX_INPUT_SIZE];
     char arg1[STRSIZE];
     char arg2[STRSIZE];
     
@@ -136,14 +134,14 @@ void applyCommands(char *args) {
         case 'c':
             iNumber = strtol(arg2, NULL, 10);
             mutex_unlock(&commandsLock);
-            create(fs, name, iNumber);
+            create(fs, arg1, iNumber);
             break;
         case 'd':
-            delete(fs, name);
+            delete(fs, arg1);
             break;
         case 'r':
-            if(name != NULL && newName != NULL) {
-                swap_name(fs, name, newName);
+            if(arg1 != NULL && arg2 != NULL) {
+                swap_name(fs, arg1, arg2);
             }
             break;
         default: { /* error */
@@ -154,7 +152,7 @@ void applyCommands(char *args) {
     //semMech_post(&semProducer);
 }
 
-void *session( void * arg) {
+ void *session(void *arg) {
     struct ucred ucred;
     char buffer[BUFFSIZE];
     char arg1[STRSIZE];
@@ -189,19 +187,19 @@ void *session( void * arg) {
                 case 'c':
                     if(lookup(fs,arg1)) {
                         error = TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
                     
                     if(getsockopt(socketFd, SOL_SOCKET, SO_PEERCRED, &ucred, &socklen) < 0) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
                     if(strlen(arg2) != 2) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -213,6 +211,8 @@ void *session( void * arg) {
                     sprintf(buffer, "c %s %d", arg1, iNumber);
 
                     applyCommands(buffer);
+                    int r = 0;
+                    write(socketFd, &r, sizeof(int));
 
                     break;
                 case 'd':
@@ -220,7 +220,7 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error= TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, (void*)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -235,7 +235,7 @@ void *session( void * arg) {
 
                     if(owner != ucred.uid) {
                         error = TECNICOFS_ERROR_PERMISSION_DENIED;
-                        write(socketFd, (void*)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -250,13 +250,13 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error= TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, (void*)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
                     if(iNumberNew) {
                         error= TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -272,7 +272,7 @@ void *session( void * arg) {
 
                     if(owner != ucred.uid) {
                         error = TECNICOFS_ERROR_PERMISSION_DENIED;
-                        write(socketFd, (void*)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -291,7 +291,7 @@ void *session( void * arg) {
 
                     if(counter == 5) {
                         error = TECNICOFS_ERROR_MAXED_OPEN_FILES;
-                        write(socketFd, (void*)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -299,7 +299,7 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error = TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -313,7 +313,7 @@ void *session( void * arg) {
 
                     if(othersPerm != mode) {
                         error= TECNICOFS_ERROR_PERMISSION_DENIED;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -343,7 +343,7 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -368,7 +368,7 @@ void *session( void * arg) {
                             //verifies the mode client opened the file
                             if(vector[i].mode!=READ || vector[i].mode!=RW) {
                                 error= TECNICOFS_ERROR_INVALID_MODE;
-                                write(socketFd, (void *)&error, sizeof(error));
+                                write(socketFd, &error, sizeof(error));
                                 break;
                             }
                             break;
@@ -377,7 +377,7 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -400,7 +400,7 @@ void *session( void * arg) {
                            //verifies the mode client opened the file                       
                            if(vector[i].mode!=WRITE || vector[i].mode!=RW) {
                                error= TECNICOFS_ERROR_INVALID_MODE;
-                               write(socketFd, (void *)&error, sizeof(error));
+                               write(socketFd, &error, sizeof(error));
                                break;
                            }
                            break;
@@ -410,7 +410,7 @@ void *session( void * arg) {
 
                     if(!iNumber) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, (void *)&error, sizeof(error));
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -474,7 +474,7 @@ int main(int argc, char* argv[]) {
     FILE * outputFp;
     int server_len;
 
-    setSignal();
+    //setSignal();
 
     parseArgs(argc, argv);
     fs = new_tecnicofs(numberBuckets);

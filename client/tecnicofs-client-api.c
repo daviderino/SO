@@ -59,6 +59,7 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
     if(read(sockfd, &ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
+    
     return ret;
 }
 
