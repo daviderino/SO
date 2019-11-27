@@ -18,8 +18,6 @@
 #include "sock.h"
 #include "sync.h"
 
-#define BUFFSIZE 512
-
 typedef struct input_t {
     int iNumber;
     int fd;
@@ -32,7 +30,6 @@ tecnicofs* fs;
 pthread_mutex_t commandsLock;
 
 struct sockaddr_un server_addr;
-struct sockaddr_un client_addr;
 
 int sockfd;
 int canAccept = 1;
@@ -124,13 +121,14 @@ void applyCommands(char *args) {
         char token;
         char name[MAX_INPUT_SIZE];
         char newName[MAX_INPUT_SIZE];
-        char arg1,arg2;
+        char arg1[STRSIZE];
+        char arg2[STRSIZE];
 
         
         semMech_wait(&semConsumer);
         mutex_lock(&commandsLock);
 
-        sscanf(args, "%c %s %s", &token, &arg1, &arg2);
+        sscanf(args, "%c %s %s", &token, arg1, arg2);
       
         if(token != 'c') {
             mutex_unlock(&commandsLock);
@@ -165,8 +163,8 @@ void *session( void * sockfd) {
     input_t *vector = malloc(sizeof(input_t)*5); 
     char buffer[BUFFSIZE];
     char token;
-    char arg1[];
-    char arg2;
+    char arg1[STRSIZE];
+    char arg2[STRSIZE];
     struct ucred ucred;
 
     int socketFd = *((int *) sockfd);
@@ -179,7 +177,7 @@ void *session( void * sockfd) {
 
     while(read(socketFd,buffer,BUFFSIZE)>0){
         
-        sscanf(buffer, "%c %s %s", &token, &arg1, &arg2);
+        sscanf(buffer, "%c %s %s", &token, arg1, arg2);
         int error,mode,counter=0;
         int len,fd;
         uid_t owner;
@@ -189,7 +187,7 @@ void *session( void * sockfd) {
 
         switch(token){
             case 'c':
-                if(lookup(fs,&arg1)) {
+                if(lookup(fs,arg1)) {
                     error= TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
                     write(socketFd, (void *)&error, sizeof(error));
                     break;
@@ -199,7 +197,7 @@ void *session( void * sockfd) {
                 break;
 
             case 'd':
-                iNumber= lookup(fs,&arg1);
+                iNumber= lookup(fs,arg1);
 
                 if(!iNumber) {
                     error= TECNICOFS_ERROR_FILE_NOT_FOUND;
@@ -223,8 +221,8 @@ void *session( void * sockfd) {
                 break;
             
             case 'r':
-                iNumber=lookup(fs,&arg1);
-                iNumberNew=lookup(fs,&arg2);
+                iNumber=lookup(fs,arg1);
+                iNumberNew=lookup(fs,arg2);
 
                 if(!iNumber) {
                     error= TECNICOFS_ERROR_FILE_NOT_FOUND;
@@ -265,7 +263,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                iNumber=lookup(fs,&arg1);
+                iNumber=lookup(fs,arg1);
 
                 if(!iNumber) {
                     error= TECNICOFS_ERROR_FILE_NOT_FOUND;
@@ -279,7 +277,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                mode= (int)strtol(&arg2,NULL,10);
+                mode= (int)strtol(arg2,NULL,10);
 
                 if(othersPerm != mode){
                     error= TECNICOFS_ERROR_PERMISSION_DENIED;
@@ -287,7 +285,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                fd= open(&arg1,mode);
+                fd= open(arg1,mode);
 
                 for(int i=0;i<5;i++)
                     if(vector[i].flag==0){
@@ -302,7 +300,7 @@ void *session( void * sockfd) {
                 break;
 
             case 'x':
-                fd = (int)strtol(&arg1,NULL,10);
+                fd = (int)strtol(arg1,NULL,10);
 
                  for(int i=0;i<5;i++)
                     if (vector[i].fd==fd){
@@ -324,8 +322,8 @@ void *session( void * sockfd) {
                 break;
 
             case 'l':
-                fd = (int)strtol(&arg1,NULL,10);
-                len= (int)strtol(&arg2,NULL,10);
+                fd = (int)strtol(arg1,NULL,10);
+                len= (int)strtol(arg2,NULL,10);
                 char *buffer;
 
                 for(int i=0;i<5;i++)
@@ -357,7 +355,7 @@ void *session( void * sockfd) {
 
             case 'w':
                 iNumber = 0;
-                fd = (int)strtol(&arg1,NULL,10);
+                fd = (int)strtol(arg1,NULL,10);
                  
                 for(int i=0;i<5;i++)
                    if (vector[i].fd==fd){
@@ -379,7 +377,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                inode_set(iNumber,&arg2,strlen(arg2));
+                inode_set(iNumber,arg2,strlen(arg2));
                 break;
 
         }
@@ -391,13 +389,15 @@ void *session( void * sockfd) {
 
 void acceptClients() {
     int num_threads = 4;
+    struct sockaddr_un client_addr;
     pthread_t *slaves = (pthread_t*) malloc(num_threads * sizeof(pthread_t));
     int i = 0;
+    unsigned int client_dimension;
 
     while(canAccept) {
-        int client_dimension;
+        client_dimension=sizeof(client_addr);
         int newsockfd=accept(sockfd, &client_addr, &client_dimension);
-        pthread_create(&slaves[i++], NULL, session, (void *) newsockfd);
+        pthread_create(&slaves[i++], NULL, session, &newsockfd);
 
         if(i == num_threads) {
             num_threads = num_threads + 4;
