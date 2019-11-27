@@ -26,7 +26,7 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
         perror("Failed to bind local address");
         return -1;
     }   
-    
+
     if(listen(sockfd, MAX_CONNECTIONS) < 0) {
         perror("Error while listening");
         return -1;
