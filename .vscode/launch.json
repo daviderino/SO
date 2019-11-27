@@ -4,19 +4,12 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
-    
-    
-
-    
-
-
-
         {
-            "name": "RWLock",
+            "name": "Client",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tecnicofs-rwlock",
-            "args": ["inputs/test420.txt", "output.txt", "4", "5"],
+            "program": "${workspaceFolder}/client/tecnicofs-client",
+            "args": ["~/temp/sock"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
@@ -29,32 +22,13 @@
                     "ignoreFailures": true
                 }
             ]
-        },
+        }
         {
-            "name": "Mutex",
+            "name": "Server",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/tecnicofs-mutex",
-            "args": ["inputs/test3.txt", "output.txt", "4", "5"],
-            "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
-            "environment": [],
-            "externalConsole": false,
-            "MIMode": "gdb",
-            "setupCommands": [
-                {
-                    "description": "Enable pretty-printing for gdb",
-                    "text": "-enable-pretty-printing",
-                    "ignoreFailures": true
-                }
-            ]
-        },
-        {
-            "name": "NoSync",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/tecnicofs-nosync",
-            "args": ["inputs/test421.txt", "output.txt", "4", "5"],
+            "program": "${workspaceFolder}/server/tecnicofs-rwlock",
+            "args": ["~/temp/sock", "output.txt", "1"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

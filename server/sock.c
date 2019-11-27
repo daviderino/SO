@@ -4,17 +4,12 @@
 int sockfd = -1;
 
 int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
-    sockfd;
-
     if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation failed");
         return -1;
     }
 
-    if(unlink(name) != 0) {
-        perror("Error unlinking socket name");
-        return -1;
-    }
+    unlink(name);
 
     bzero((char*)&server_addr, sizeof(server_addr));
 
@@ -27,7 +22,7 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
         return -1;
     }   
 
-    if(listen(sockfd, MAX_CONNECTIONS) < 0) {
+    if(listen(sockfd, 5) < 0) {
         perror("Error while listening");
         return -1;
     }
