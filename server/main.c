@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
 #include <string.h>
 #include <strings.h>
 #include <pthread.h>
@@ -23,8 +24,7 @@ typedef struct input_t {
     int iNumber;
     int fd;
     int mode;
-    //file opened:flag=1
-    int flag;
+    int flag;   //file opened:flag=1
 } input_t;
 
 
@@ -136,7 +136,6 @@ void applyCommands(char *args) {
             mutex_unlock(&commandsLock);
         }
 
-        int searchResult;
         int iNumber;
         switch (token) {
             case 'c':
@@ -165,7 +164,9 @@ void applyCommands(char *args) {
 void *session( void * sockfd) {
     input_t *vector = malloc(sizeof(input_t)*5); 
     char buffer[BUFFSIZE];
-    char token,arg1,arg2;
+    char token;
+    char arg1[];
+    char arg2;
     struct ucred ucred;
 
     int socketFd = *((int *) sockfd);
@@ -182,7 +183,7 @@ void *session( void * sockfd) {
         int error,mode,counter=0;
         int len,fd;
         uid_t owner;
-        int othersPerm;
+        permission othersPerm;
         int iNumber=0;
         int iNumberNew=0;
 
@@ -286,7 +287,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                fd= open(arg1,mode);
+                fd= open(&arg1,mode);
 
                 for(int i=0;i<5;i++)
                     if(vector[i].flag==0){
@@ -378,7 +379,7 @@ void *session( void * sockfd) {
                     break;
                 }
 
-                inode_set(iNumber,arg2,strlen(arg2));
+                inode_set(iNumber,&arg2,strlen(arg2));
                 break;
 
         }
