@@ -353,8 +353,8 @@ void applyCommands(char *args) {
                     break;
 
                 case 'l':
-                    fd = (int)strtol(arg1,NULL,10);
-                    len = (int)strtol(arg2,NULL,10);
+                    fd = (int)strtol(arg1, NULL, 10);
+                    len = (int)strtol(arg2, NULL,10);
 
                     if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
@@ -372,6 +372,7 @@ void applyCommands(char *args) {
                     iNumber = vector[fd].iNumber;
 
                     int n;
+
                     if((n = inode_get(iNumber, NULL, NULL, NULL, buffer, len -1)) < 0) {
                         error= TECNICOFS_ERROR_OTHER;
                         write(socketFd, &error, sizeof(error));
@@ -386,7 +387,7 @@ void applyCommands(char *args) {
                     fd = (int)strtol(arg1, NULL, 10);
 
                     if(vector[fd].flag == 0) {
-                        error= TECNICOFS_ERROR_FILE_NOT_OPEN;
+                        error = TECNICOFS_ERROR_FILE_NOT_OPEN;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
@@ -398,13 +399,12 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    iNumber= vector[fd].iNumber;
+                    iNumber = vector[fd].iNumber;
 
-                    inode_set(iNumber,arg2,strlen(arg2));
+                    inode_set(iNumber, arg2, strlen(arg2));
 
-                    write(socketFd, &status, sizeof(int));
+                    write(socketFd, &status, sizeof(status));
                     break;
-
                 case '0':
                     sessionActive = 0;
                     break;

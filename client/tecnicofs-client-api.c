@@ -52,7 +52,7 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
 
     sprintf(buffer, "c %s %d%d", filename, ownerPermissions, othersPermissions);
 
-    if(write(sockfd, buffer, BUFFSIZE) < 0) {
+    if(write(sockfd, buffer, sizeof(buffer)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -63,13 +63,64 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
     return ret;
 }
 
-int tfsOpen (char *filename, int mode){
+int tfsDelete(char *filename) {
+    char buffer[BUFFSIZE];
+    int ret;
+
+    sprintf(buffer, "d %s", filename);
+
+    if(write(sockfd, buffer, sizeof(buffer)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    if(read(sockfd, &ret, sizeof(int)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    return ret;
+}
+
+int tfsRename(char *filenameOld, char *filenameNew) {
+    char buffer[BUFFSIZE];
+    int ret;
+
+    sprintf(buffer, "r %s %s", filenameOld, filenameNew);
+
+    if(write(sockfd, buffer, sizeof(buffer)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    if(read(sockfd, &ret, sizeof(int)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    return ret;
+}
+
+int tfsOpen(char *filename, int mode){
     char buffer[BUFFSIZE];
     int ret;
 
     sprintf(buffer, "o %s %d", filename, mode);
 
     if(write(sockfd, buffer, BUFFSIZE) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    if(read(sockfd, &ret, sizeof(int)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    return ret;
+}
+
+int tfsClose(int fd){
+    char buffer[BUFFSIZE];
+    int ret;
+
+    sprintf(buffer, "x %d", fd);
+
+    if(write(sockfd, buffer, sizeof(buffer)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
@@ -87,15 +138,15 @@ int tfsRead(int fd, char *buffer, int len){
 
     sprintf(msg, "l %d %d", fd, len);
 
-    if(write(sockfd, msg, BUFFSIZE) < 0) {
+    if(write(sockfd, msg, sizeof(msg)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, &ret,sizeof(int)) < 0) {
+    if(read(sockfd, &ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(ret!=0){
+    if(ret != 0){
         return ret;
     }
 
@@ -106,65 +157,13 @@ int tfsRead(int fd, char *buffer, int len){
     return n;
 }
 
-int tfsClose(int fd){
-    char buffer[BUFFSIZE];
-    int ret;
-
-    sprintf(buffer, "x %d", fd);
-
-    if(write(sockfd, buffer, BUFFSIZE) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    if(read(sockfd, &ret, sizeof(int)) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    return ret;
-}
-  
-
-int tfsDelete(char *filename) {
-    char buffer[BUFFSIZE];
-    int ret;
-
-    sprintf(buffer, "d %s", filename);
-
-    if(write(sockfd, buffer, BUFFSIZE) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    if(read(sockfd, &ret, sizeof(ret)) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    return ret;
-}
-
-int tfsRename(char *filenameOld, char *filenameNew) {
-    char buffer[BUFFSIZE];
-    int ret;
-
-    sprintf(buffer, "r %s %s", filenameOld, filenameNew);
-
-    if(write(sockfd, buffer, BUFFSIZE) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    if(read(sockfd, &ret, sizeof(int)) < 0) {
-        return TECNICOFS_ERROR_OTHER;
-    }
-
-    return ret;
-}
-
 int tfsWrite(int fd, char *buffer, int len) {
     char msg[BUFFSIZE];
     int ret;
 
     sprintf(msg, "w %d %s", fd, buffer);
 
-    if(write(sockfd, msg, BUFFSIZE) < 0) {
+    if(write(sockfd, msg, sizeof(char) * (len + 5)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
