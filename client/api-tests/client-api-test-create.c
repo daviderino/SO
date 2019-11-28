@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 
 int main(int argc, char** argv) {
      if (argc != 2) {
@@ -11,6 +12,7 @@ int main(int argc, char** argv) {
     }
     assert(tfsMount(argv[1]) == 0);
     printf("Test: create file sucess\n");
+    sleep(5);
     assert(tfsCreate("a", RW, READ) == 0);
     printf("Test: create file with name that already exists\n");
     assert(tfsCreate("a", RW, READ) == TECNICOFS_ERROR_FILE_ALREADY_EXISTS);

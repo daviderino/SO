@@ -9,6 +9,8 @@
         "constants.h": "c",
         "math.h": "c",
         "sock.h": "c",
-        "tecnicofs-api-constants.h": "c"
+        "tecnicofs-api-constants.h": "c",
+        "tecnicofs-client-api.h": "c",
+        "un.h": "c"
     }
 }
