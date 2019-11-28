@@ -156,7 +156,7 @@ void applyCommands(char *args) {
 
  void *session(void *arg) {
     struct ucred ucred;
-    char buffer[BUFFSIZE];
+    char msg[BUFFSIZE];
     char arg1[STRSIZE];
     char arg2[STRSIZE];
     char token;
@@ -188,9 +188,10 @@ void applyCommands(char *args) {
         int counter = 0;
         int iNumber = -1;
         int iNumberNew = 0;
+        char buffer[STRSIZE];
 
-        if(read(socketFd, buffer, BUFFSIZE) > 0) {
-            sscanf(buffer, "%c %s %s", &token, arg1, arg2);
+        if(read(socketFd, msg, BUFFSIZE) > 0) {
+            sscanf(msg, "%c %s %s", &token, arg1, arg2);
 
             switch(token) {
                 case 'c':
@@ -212,9 +213,9 @@ void applyCommands(char *args) {
                     
                     iNumber = inode_create(ucred.uid, ownerPerm, othersPerm);
 
-                    sprintf(buffer, "c %s %d", arg1, iNumber);
+                    sprintf(msg, "c %s %d", arg1, iNumber);
 
-                    applyCommands(buffer);
+                    applyCommands(msg);
 
                     write(socketFd, &status, sizeof(int));
 
@@ -227,6 +228,7 @@ void applyCommands(char *args) {
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
+
 
                     for(i=0;i<5;i++)
                         if(vector[i].iNumber == iNumber && vector[i].flag==1){
@@ -247,9 +249,9 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    sprintf(buffer, "d %s", arg1);
+                    sprintf(msg, "d %s", arg1);
 
-                    applyCommands(buffer);
+                    applyCommands(msg);
 
                     write(socketFd, &status, sizeof(status));
 
@@ -281,9 +283,9 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    sprintf(buffer, "r %s %s", arg1, arg2);
+                    sprintf(msg, "r %s %s", arg1, arg2);
 
-                    applyCommands(buffer);
+                    applyCommands(msg);
 
                     write(socketFd, &status, sizeof(int));
 
@@ -318,21 +320,21 @@ void applyCommands(char *args) {
 
                     mode =strtol(arg2,NULL,10);
 
-                    if(owner != ucred.uid){
-                        if(othersPerm != mode) {
-                            error=mode;
+                    if(owner == ucred.uid) {
+                       if(ownerPerm != mode && ownerPerm != RW) {
                             error= TECNICOFS_ERROR_PERMISSION_DENIED;
                             write(socketFd, &error, sizeof(error));
                             break;
                         }
-                    } else {
-                            if(ownerPerm != mode){
-                                error=mode;
-                                error= TECNICOFS_ERROR_PERMISSION_DENIED;
-                                write(socketFd, &error, sizeof(error));
-                                break;
-                            }
+                    }
+                    else {
+                         if (othersPerm != mode && othersPerm != RW){
+                            error= TECNICOFS_ERROR_PERMISSION_DENIED;
+                            write(socketFd, &error, sizeof(error));
+                            break;
                         }
+
+                    }
 
                     for(i = 0; i < 5; i++) {
                         if(vector[i].flag==0){
@@ -358,7 +360,6 @@ void applyCommands(char *args) {
 
                     vector[fd].flag=0;
 
-
                     write(socketFd, &status, sizeof(int));
 
                     break;
@@ -366,7 +367,6 @@ void applyCommands(char *args) {
                 case 'l':
                     fd = (int)strtol(arg1,NULL,10);
                     len = (int)strtol(arg2,NULL,10);
-                    char buffer[STRSIZE];
 
                     if(vector[fd].flag == 0 ) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
@@ -375,7 +375,7 @@ void applyCommands(char *args) {
                     }
 
                     // verifies the mode client opened the file
-                    if(vector[i].mode!=READ || vector[i].mode!=RW) {
+                    if(vector[fd].mode!=READ && vector[fd].mode!=RW) {
                         error= TECNICOFS_ERROR_INVALID_MODE;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -383,12 +383,15 @@ void applyCommands(char *args) {
 
                     iNumber = vector[fd].iNumber;
 
-                    if(inode_get(iNumber, NULL, NULL, NULL,buffer, len) < 0){
-                        perror("Error when calling inode_get");
+                    int n;
+                    if((n = inode_get(iNumber, NULL, NULL, NULL,buffer, len -1)) < 0){
+                        error= TECNICOFS_ERROR_OTHER;
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
-                    write(socketFd,buffer,len);
+                    write(socketFd,&status,sizeof(int));
+                    write(socketFd,buffer,n);
 
                     break;
 
@@ -402,7 +405,7 @@ void applyCommands(char *args) {
                     }
 
                     // verifies which mode client has opened the file as                      
-                    if(vector[i].mode != WRITE || vector[i].mode != RW) {
+                    if(vector[fd].mode != WRITE && vector[fd].mode != RW) {
                         error= TECNICOFS_ERROR_INVALID_MODE;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -411,6 +414,7 @@ void applyCommands(char *args) {
                     iNumber= vector[fd].iNumber;
 
                     inode_set(iNumber,arg2,strlen(arg2));
+
                     write(socketFd, &status, sizeof(int));
                     break;
 
@@ -435,19 +439,22 @@ void acceptClients() {
     unsigned int client_dimension;
     struct sockaddr_un client_addr;
     int i = 0;
+    int c;
     int num_threads = 4;
+    int fd[100];
     pthread_t *slaves = (pthread_t*) malloc(num_threads * sizeof(pthread_t));
 
-    while(canAccept) {
+    while(canAccept) { 
         client_dimension = sizeof(client_addr);
+
         int newsockfd = accept(global_sockfd, &client_addr, &client_dimension);
+        fd[i]=newsockfd;
         
         if(pthread_create(&slaves[i++], NULL, session, &newsockfd) != 0) {
             perror("Error when creating slave thread");
             exit(EXIT_FAILURE);
         }
 
-        // close(newsockfd)
 
         if(i == num_threads) {
             num_threads = num_threads + 4;
@@ -455,7 +462,12 @@ void acceptClients() {
         }
     }
 
-    for(int c = 0; c <= i; c++) {
+    printf("made it to exit while\n");
+
+    for(c=0; c <= i; c++)
+        close(fd[c]);
+
+    for(c = 0; c <= i; c++) {
         if(pthread_join(slaves[c], NULL) != 0) {
             perror("Error joining slave thread");
             exit(EXIT_FAILURE);
@@ -464,12 +476,17 @@ void acceptClients() {
 }
 
 void handle_sigint() {
-    signal(SIGINT, handle_sigint);
+    printf("made it do handle signal\n");
     canAccept = 0;
 }
 
 void setSignal() {
-    if (signal(SIGINT, handle_sigint) ) {
+    struct sigaction signal;
+    signal.sa_handler = handle_sigint;
+    signal.sa_flags = 0;
+    sigemptyset( &signal.sa_mask );
+    
+    if (sigaction( SIGINT, &signal, NULL )) {
         perror("Error while setting SIGINT\n");
         exit(EXIT_FAILURE);
     }
@@ -480,7 +497,7 @@ int main(int argc, char* argv[]) {
     FILE * outputFp;
     int server_len;
 
-    //setSignal();
+    setSignal();
     inode_table_init();
 
     parseArgs(argc, argv);
