@@ -134,7 +134,7 @@ int tfsDelete(char *filename) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, &ret, sizeof(int)) < 0) {
+    if(read(sockfd, &ret, sizeof(ret)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
