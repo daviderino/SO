@@ -160,17 +160,18 @@ void applyCommands(char *args) {
     char arg1[STRSIZE];
     char arg2[STRSIZE];
     char token;
-    int sessionActive = 1;
     int error;
-    unsigned int socklen = sizeof(int);
     int i;
+    int sessionActive = 1;
+    int socketFd = *((int*)arg);
+    unsigned int socklen = sizeof(int);
 
     input_t *vector = malloc(sizeof(input_t) * 5); 
 
-    int socketFd = *((int*)arg);
+    for(int i = 0; i < 5; i++) {
 
-    for(int i = 0; i < 5; i++) 
         vector[i].flag=0;
+    }
    
     if(getsockopt(socketFd, SOL_SOCKET, SO_PEERCRED, &ucred, &socklen) < 0) {
        perror("Error when calling getsockopt");
@@ -372,8 +373,8 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    //verifies the mode client opened the file
-                    if(vector[fd].mode!=READ || vector[fd].mode!=RW) {
+                    // verifies the mode client opened the file
+                    if(vector[i].mode!=READ || vector[i].mode!=RW) {
                         error= TECNICOFS_ERROR_INVALID_MODE;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -399,8 +400,8 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    //verifies the mode client opened the file                       
-                    if(vector[fd].mode!=WRITE || vector[fd].mode!=RW) {
+                    // verifies which mode client has opened the file as                      
+                    if(vector[i].mode != WRITE || vector[i].mode != RW) {
                         error= TECNICOFS_ERROR_INVALID_MODE;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -409,17 +410,21 @@ void applyCommands(char *args) {
                     iNumber= vector[fd].iNumber;
 
                     inode_set(iNumber,arg2,strlen(arg2));
-
                     write(socketFd, &status, sizeof(int));
-
                     break;
 
                 case '0':
                     sessionActive = 0;
                     break;
+                default:
+                    error= TECNICOFS_ERROR_INVALID_MODE;
+                    write(socketFd, &error, sizeof(error));
+                    break;
             }
         }
     }
+
+    
 
     close(socketFd);
     return NULL;
@@ -440,6 +445,8 @@ void acceptClients() {
             perror("Error when creating slave thread");
             exit(EXIT_FAILURE);
         }
+
+        // close(newsockfd)
 
         if(i == num_threads) {
             num_threads = num_threads + 4;
@@ -478,8 +485,6 @@ int main(int argc, char* argv[]) {
     parseArgs(argc, argv);
     fs = new_tecnicofs(numberBuckets);
 
-    //semMech_init(&semProducer, MAX_COMMANDS);
-    //semMech_init(&semConsumer, 0);
     mutex_init(&commandsLock);
 
     global_sockfd = serverSocketMount(server_addr, global_socketname, &server_len);
@@ -487,19 +492,19 @@ int main(int argc, char* argv[]) {
     TIMER_READ(startTime);
     acceptClients();
     TIMER_READ(endTime);
+
+    if(serverSocketUnmount() != 0) {
+        perror("Error when unmounting server socket");
+    }
     
-    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n",
-    TIMER_DIFF_SECONDS(startTime, endTime));
+    fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", TIMER_DIFF_SECONDS(startTime, endTime));
     
     outputFp = openOutputFile();
     print_tecnicofs_tree(outputFp, fs);
+    closeOutputFile(outputFp);
 
     mutex_destroy(&commandsLock);
-    //semMech_destroy(&semProducer);
-    //semMech_destroy(&semConsumer);
-    
     free_tecnicofs(fs);
-    closeOutputFile(outputFp);
     
     exit(EXIT_SUCCESS);
 }
