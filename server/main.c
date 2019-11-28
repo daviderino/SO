@@ -181,10 +181,10 @@ void applyCommands(char *args) {
         permission othersPerm;
         permission ownerPerm;
         uid_t owner;
-        int status = 0;
         int len;
         int fd;
         int mode;
+        int status = 0;
         int counter = 0;
         int iNumber = -1;
         int iNumberNew = 0;
@@ -228,7 +228,7 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    for(i=0;i<5;i++)
+                    for(i = 0; i < 5; i++)
                         if(vector[i].iNumber == iNumber && vector[i].flag==1){
                             error= TECNICOFS_ERROR_FILE_IS_OPEN;
                             write(socketFd, &error, sizeof(error));
