@@ -81,19 +81,29 @@ int tfsOpen (char *filename, int mode){
 }
 
 int tfsRead(int fd, char *buffer, int len){
-    char buff[BUFFSIZE];
+    char msg[BUFFSIZE];
+    int n;
+    int ret;
 
-    sprintf(buff, "l %d %d", fd, len);
+    sprintf(msg, "l %d %d", fd, len);
 
-     if(write(sockfd, buff, BUFFSIZE) < 0) {
+    if(write(sockfd, msg, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    if(read(sockfd, buffer, len) < 0) {
+    if(read(sockfd, &ret,sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
-    return strlen(buffer);
+    if(ret!=0){
+        return ret;
+    }
+
+    if((n = read(sockfd, buffer, len)) < 0) {
+        return TECNICOFS_ERROR_OTHER;
+    }
+
+    return n;
 }
 
 int tfsClose(int fd){
@@ -149,12 +159,12 @@ int tfsRename(char *filenameOld, char *filenameNew) {
 }
 
 int tfsWrite(int fd, char *buffer, int len) {
-    char buff[BUFFSIZE];
+    char msg[BUFFSIZE];
     int ret;
 
-    sprintf(buff, "w %d %s", fd, buffer);
+    sprintf(msg, "w %d %s", fd, buffer);
 
-    if(write(sockfd, buffer, BUFFSIZE) < 0) {
+    if(write(sockfd, msg, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
 
