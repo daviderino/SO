@@ -169,7 +169,6 @@ void applyCommands(char *args) {
     input_t *vector = malloc(sizeof(input_t) * 5); 
 
     for(int i = 0; i < 5; i++) {
-
         vector[i].flag=0;
     }
    
@@ -182,7 +181,7 @@ void applyCommands(char *args) {
         permission othersPerm;
         permission ownerPerm;
         uid_t owner;
-        int status=0;
+        int status = 0;
         int len;
         int fd;
         int mode;
@@ -237,7 +236,8 @@ void applyCommands(char *args) {
                         }
 
                     if(inode_get(iNumber, &owner, NULL, NULL, NULL, 0) < 0){
-                        perror("Error when calling inode_get");
+                        error = TECNICOFS_ERROR_OTHER;
+                        write(socketFd, &error, sizeof(error));
                         break;
                     }
 
@@ -251,7 +251,7 @@ void applyCommands(char *args) {
 
                     applyCommands(buffer);
 
-                    write(socketFd, &status, sizeof(int));
+                    write(socketFd, &status, sizeof(status));
 
                     break;
                 case 'r':
@@ -350,13 +350,14 @@ void applyCommands(char *args) {
                 case 'x':
                     fd = (int)strtol(arg1,NULL,10);
 
-                    if( vector[fd].flag == 0) {
+                    if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
 
                     vector[fd].flag=0;
+
 
                     write(socketFd, &status, sizeof(int));
 

@@ -100,7 +100,7 @@ int tfsClose(int fd){
     char buffer[BUFFSIZE];
     int ret;
 
-    sprintf(buffer, "c %d", fd);
+    sprintf(buffer, "x %d", fd);
 
     if(write(sockfd, buffer, BUFFSIZE) < 0) {
         return TECNICOFS_ERROR_OTHER;
@@ -127,8 +127,6 @@ int tfsDelete(char *filename) {
     if(read(sockfd, &ret, sizeof(int)) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
-
-    printf("return = %d\n",ret);
 
     return ret;
 }
