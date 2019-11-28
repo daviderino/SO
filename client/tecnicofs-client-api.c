@@ -128,6 +128,8 @@ int tfsDelete(char *filename) {
         return TECNICOFS_ERROR_OTHER;
     }
 
+    printf("return = %d\n",ret);
+
     return ret;
 }
 
