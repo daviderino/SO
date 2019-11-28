@@ -23,8 +23,8 @@ int main(int argc, char** argv) {
     printf("Test: delete file success\n");
     assert(tfsDelete("a") == 0);
     
-    /*printf("Test: delete file that does not exist");
-    assert(tfsDelete("b") == TECNICOFS_ERROR_FILE_NOT_FOUND);*/
+    printf("Test: delete file that does not exist\n");
+    assert(tfsDelete("b") == TECNICOFS_ERROR_FILE_NOT_FOUND);
     assert(tfsUnmount() == 0);
     return 0;
 }
