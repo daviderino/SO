@@ -4,7 +4,9 @@
 #include <fcntl.h>
 #include <string.h>
 #include <strings.h>
+#include <stdint.h>
 #include <pthread.h>
+#include <unistd.h>
 #include <math.h>
 #include <signal.h>
 #include <sys/types.h>
@@ -20,7 +22,7 @@
 
 typedef struct input_t {
     int iNumber;
-    int fd;
+    // int fd;
     int mode;
     int flag;   //file opened:flag=1
 } input_t;
@@ -159,15 +161,18 @@ void applyCommands(char *args) {
     char arg2[STRSIZE];
     char token;
     int error;
+    int i;
     int sessionActive = 1;
     int socketFd = *((int*)arg);
     unsigned int socklen = sizeof(int);
+
     input_t *vector = malloc(sizeof(input_t) * 5); 
 
     for(int i = 0; i < 5; i++) {
+
         vector[i].flag=0;
     }
-
+   
     if(getsockopt(socketFd, SOL_SOCKET, SO_PEERCRED, &ucred, &socklen) < 0) {
        perror("Error when calling getsockopt");
        exit(EXIT_FAILURE);
@@ -178,7 +183,6 @@ void applyCommands(char *args) {
         permission ownerPerm;
         uid_t owner;
         int status=0;
-        int i;
         int len;
         int fd;
         int mode;
@@ -219,11 +223,18 @@ void applyCommands(char *args) {
                 case 'd':
                     iNumber= lookup(fs,arg1);
 
-                    if(!iNumber) {
+                    if(iNumber == -1) {
                         error= TECNICOFS_ERROR_FILE_NOT_FOUND;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
+
+                    for(i=0;i<5;i++)
+                        if(vector[i].iNumber == iNumber && vector[i].flag==1){
+                            error= TECNICOFS_ERROR_FILE_IS_OPEN;
+                            write(socketFd, &error, sizeof(error));
+                            break;
+                        }
 
                     if(inode_get(iNumber, &owner, NULL, NULL, NULL, 0) < 0){
                         perror("Error when calling inode_get");
@@ -247,13 +258,13 @@ void applyCommands(char *args) {
                     iNumber=lookup(fs,arg1);
                     iNumberNew=lookup(fs,arg2);
 
-                    if(!iNumber) {
+                    if(iNumber == -1) {
                         error= TECNICOFS_ERROR_FILE_NOT_FOUND;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
 
-                    if(iNumberNew) {
+                    if(iNumberNew != -1) {
                         error= TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -280,11 +291,11 @@ void applyCommands(char *args) {
                 case 'o':
                     //counts the number of opened files
                     for(i = 0; i < 5; i++) {
-                        if(vector[i].flag == 1) {
+                        if(vector[i].flag==1) {
                             counter++;
                         }
                     }
-
+                    
                     if(counter == 5) {
                         error = TECNICOFS_ERROR_MAXED_OPEN_FILES;
                         write(socketFd, &error, sizeof(error));
@@ -305,66 +316,47 @@ void applyCommands(char *args) {
                         break;
                     }
 
-                    mode = (int)strtol(arg2,NULL,10);
+                    mode =strtol(arg2,NULL,10);
 
                     if(owner != ucred.uid){
                         if(othersPerm != mode) {
+                            error=mode;
                             error= TECNICOFS_ERROR_PERMISSION_DENIED;
                             write(socketFd, &error, sizeof(error));
                             break;
                         }
                     } else {
                             if(ownerPerm != mode){
+                                error=mode;
                                 error= TECNICOFS_ERROR_PERMISSION_DENIED;
                                 write(socketFd, &error, sizeof(error));
                                 break;
                             }
                         }
 
-
-                    fd = open(arg1,mode);
-
-                    for(int i = 0; i < 5; i++) {
+                    for(i = 0; i < 5; i++) {
                         if(vector[i].flag==0){
-                            vector[i].flag=1;
                             vector[i].mode=mode;
-                            vector[i].fd=fd;
                             vector[i].iNumber=iNumber;
+                            vector[i].flag=1;
                             break;
                         }
                     }
 
-                    status=fd;
-
-                    printf("fd in server =%d",fd);
-                    printf("consegui\n");
-                    write(socketFd, &status, sizeof(int));
-
+                    write(socketFd, &i, sizeof(int));
+                    
                     break;
 
                 case 'x':
                     fd = (int)strtol(arg1,NULL,10);
 
-                    for(int i=0;i<5;i++) {
-                        if (vector[i].fd==fd) {
-                            iNumber=vector[i].iNumber;
-                            break;
-                        }
-                    }
-
-                    if(!iNumber) {
+                    if( vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
 
-                    for(int i=0;i<5;i++) {
-                        if (vector[i].fd==fd) {
-                            vector[i].flag=0;
-                        }
-                    }
-
-                    close(fd);
+                    vector[fd].flag=0;
 
                     write(socketFd, &status, sizeof(int));
 
@@ -375,13 +367,7 @@ void applyCommands(char *args) {
                     len = (int)strtol(arg2,NULL,10);
                     char buffer[STRSIZE];
 
-                    for(i=0;i<5;i++) 
-                        if (vector[i].fd==fd){
-                            iNumber=vector[i].iNumber;
-                            break;
-                        }
-
-                    if(!iNumber) {
+                    if(vector[fd].flag == 0 ) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -394,6 +380,8 @@ void applyCommands(char *args) {
                         break;
                     }
 
+                    iNumber = vector[fd].iNumber;
+
                     if(inode_get(iNumber, NULL, NULL, NULL,buffer, len) < 0){
                         perror("Error when calling inode_get");
                         break;
@@ -404,16 +392,9 @@ void applyCommands(char *args) {
                     break;
 
                 case 'w':
-                    iNumber = 0;
                     fd = (int)strtol(arg1,NULL,10);
 
-                    for(int i=0;i<5;i++) 
-                       if (vector[i].fd == fd){
-                           iNumber = vector[i].iNumber;  
-                           break;
-                       }
-
-                    if(!iNumber) {
+                    if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
                         write(socketFd, &error, sizeof(error));
                         break;
@@ -425,6 +406,8 @@ void applyCommands(char *args) {
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
+
+                    iNumber= vector[fd].iNumber;
 
                     inode_set(iNumber,arg2,strlen(arg2));
                     write(socketFd, &status, sizeof(int));
