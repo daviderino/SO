@@ -422,14 +422,15 @@ void applyCommands(char *args) {
 
 void acceptClients() {
     int c;
+    int fd[100];
     unsigned int client_dimension;
     struct sockaddr_un client_addr;
-    int fd[100];
     int i = 0;
     int num_threads = 4;
     pthread_t *slaves = (pthread_t*) malloc(num_threads * sizeof(pthread_t));
 
     while(1) { 
+        sigset_t set;
         client_dimension = sizeof(client_addr);
 
         int newsockfd = accept(global_sockfd, &client_addr, &client_dimension);
@@ -439,6 +440,13 @@ void acceptClients() {
             i--;
             close(newsockfd);
             break;
+        }
+
+        sigemptyset(&set);
+
+        if(pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
+            perror("Error when setting sigmask to slave thread");
+            exit(EXIT_FAILURE);
         }
 
         if(pthread_create(&slaves[i++], NULL, session, &newsockfd) != 0) {
@@ -472,10 +480,9 @@ void setSignal() {
     struct sigaction signal;
     signal.sa_handler = handle_sigint;
     signal.sa_flags = 0;
-    sigemptyset( &signal.sa_mask );
-
+    sigemptyset(&signal.sa_mask);
     
-    if(sigaction(SIGINT, &signal, NULL )) {
+    if(sigaction(SIGINT, &signal, NULL)) {
         perror("Error while setting SIGINT\n");
         exit(EXIT_FAILURE);
     }
