@@ -50,7 +50,6 @@ int main(int argc, char** argv) {
 
     assert(tfsWrite(n1, "qwertyuiop", 100) == 0);
     assert(tfsRead(n1, buffer, 7) == 6);
-    puts(buffer);
     assert(strcmp(buffer, "qwerty") == 0);
     assert(tfsRead(n1, buffer, 50) == 10);
     assert(strcmp(buffer, "qwertyuiop") == 0);

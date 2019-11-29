@@ -159,16 +159,22 @@ int tfsRead(int fd, char *buffer, int len){
 
     if((n = read(sockfd, buffer, len)) < 0) {
         return TECNICOFS_ERROR_OTHER;
-    }
+    }  
 
-    return n;
+    return n - 1;
 }
 
 int tfsWrite(int fd, char *buffer, int len) {
     char msg[BUFFSIZE];
     int ret;
+    int n = strlen(buffer);
+
+    if(n < len) {
+        len = n;
+    }
 
     sprintf(msg, "w %d %s", fd, buffer);
+    msg[len + 4] = '\0';
 
     if(write(sockfd, msg, sizeof(char) * (len + 5)) < 0) {
         return TECNICOFS_ERROR_OTHER;
