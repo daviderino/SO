@@ -4,6 +4,10 @@
 int sockfd = -1;
 
 int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
+    if(sockfd != -1) {
+        return -1;
+    }
+
     if((sockfd = socket(AF_UNIX, SOCK_STREAM, 0)) < 0) {
         perror("Socket creation failed");
         return -1;
@@ -32,7 +36,6 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
 
 int serverSocketUnmount() {
     if(sockfd == -1) {
-        perror("Error when unmounting server socket");
         return -1;
     }
 
@@ -40,6 +43,8 @@ int serverSocketUnmount() {
         perror("Error when unmounting server socket");
         return -1;
     }
+
+    sockfd = -1;
 
     return 0;
 }

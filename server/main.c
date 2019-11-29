@@ -148,6 +148,13 @@ void applyCommands(char *args) {
     }
 }
 
+void writeIntValidate(int fd, int *val) {
+    if(write(fd, val, sizeof(int)) < 0) {
+        perror("Error when callign write()");
+        exit(EXIT_FAILURE);
+    }
+}
+
  void *session(void *arg) {
     struct ucred ucred;
     char token;
@@ -167,8 +174,8 @@ void applyCommands(char *args) {
     }
 
     if(getsockopt(socketFd, SOL_SOCKET, SO_PEERCRED, &ucred, &socklen) < 0) {
-       perror("Error when calling getsockopt");
-       exit(EXIT_FAILURE);
+        perror("Error when calling getsockopt");
+        exit(EXIT_FAILURE);
     }
 
     while(sessionActive) {   
@@ -190,13 +197,15 @@ void applyCommands(char *args) {
                 case 'c':
                     if(lookup(fs,arg1) != -1) {
                         error = TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-                        write(socketFd, &error, sizeof(error));
+                        
+                        
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(strlen(arg2) != 2) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
@@ -208,7 +217,7 @@ void applyCommands(char *args) {
                     sprintf(msg, "c %s %d", arg1, iNumber);
 
                     applyCommands(msg);
-                    write(socketFd, &status, sizeof(int));
+                    writeIntValidate(socketFd, &status);
 
                     break;
                 case 'd':
@@ -216,26 +225,26 @@ void applyCommands(char *args) {
 
                     if(iNumber == -1) {
                         error= TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(inode_get(iNumber, &owner, NULL, NULL, NULL, 0) < 0) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(owner != ucred.uid) {
                         error = TECNICOFS_ERROR_PERMISSION_DENIED;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     sprintf(msg, "d %s", arg1);
                     applyCommands(msg);
 
-                    write(socketFd, &status, sizeof(status));
+                    writeIntValidate(socketFd, &status);
 
                     break;
                 case 'r':
@@ -244,32 +253,32 @@ void applyCommands(char *args) {
 
                     if(iNumber == -1) {
                         error = TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(iNumberNew != -1) {
                         error = TECNICOFS_ERROR_FILE_ALREADY_EXISTS;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(inode_get(iNumber, &owner, NULL, NULL, NULL, 0) < 0) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(owner != ucred.uid) {
                         error = TECNICOFS_ERROR_PERMISSION_DENIED;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     sprintf(msg, "r %s %s", arg1, arg2);
                     applyCommands(msg);
 
-                    write(socketFd, &status, sizeof(status));
+                    writeIntValidate(socketFd, &status);
 
                     break;
                 case 'o':
@@ -282,7 +291,7 @@ void applyCommands(char *args) {
                     
                     if(counter == 5) {
                         error = TECNICOFS_ERROR_MAXED_OPEN_FILES;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
@@ -290,13 +299,13 @@ void applyCommands(char *args) {
 
                     if(iNumber == -1) {
                         error = TECNICOFS_ERROR_FILE_NOT_FOUND;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     if(inode_get(iNumber, &owner, &ownerPerm, &othersPerm, NULL, 0) < 0) {
-                        error=TECNICOFS_ERROR_OTHER;
-                        write(socketFd, &error, sizeof(error));
+                        error = TECNICOFS_ERROR_OTHER;
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
@@ -304,18 +313,17 @@ void applyCommands(char *args) {
 
                     if(owner == ucred.uid) {
                        if(ownerPerm != mode && ownerPerm != RW) {
-                            error= TECNICOFS_ERROR_PERMISSION_DENIED;
-                            write(socketFd, &error, sizeof(error));
+                            error = TECNICOFS_ERROR_PERMISSION_DENIED;
+                            writeIntValidate(socketFd, &error);
                             break;
                         }
                     }
                     else {
                          if(othersPerm != mode && othersPerm != RW) {
-                            error= TECNICOFS_ERROR_PERMISSION_DENIED;
-                            write(socketFd, &error, sizeof(error));
+                            error = TECNICOFS_ERROR_PERMISSION_DENIED;
+                            writeIntValidate(socketFd, &error);
                             break;
                         }
-
                     }
 
                     for(i = 0; i < 5; i++) {
@@ -336,13 +344,13 @@ void applyCommands(char *args) {
 
                     if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     vector[fd].flag = 0;
 
-                    write(socketFd, &status, sizeof(status));
+                    writeIntValidate(socketFd, &status);
 
                     break;
 
@@ -352,14 +360,14 @@ void applyCommands(char *args) {
 
                     if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     // verifies the mode client opened the file
                     if(vector[fd].mode != READ && vector[fd].mode != RW) {
                         error = TECNICOFS_ERROR_INVALID_MODE;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
@@ -369,12 +377,16 @@ void applyCommands(char *args) {
 
                     if((n = inode_get(iNumber, NULL, NULL, NULL, buffer, len - 1)) < 0) {
                         error = TECNICOFS_ERROR_OTHER;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
-                    write(socketFd, &status, sizeof(int));
-                    write(socketFd, buffer, n + 1);
+                    writeIntValidate(socketFd, &status);
+
+                    if(write(socketFd, buffer, n + 1) < 0) {
+                        perror("Error when calling write()");
+                        exit(EXIT_FAILURE);
+                    };
 
                     break;
                 case 'w':
@@ -382,28 +394,28 @@ void applyCommands(char *args) {
 
                     if(vector[fd].flag == 0) {
                         error = TECNICOFS_ERROR_FILE_NOT_OPEN;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     // verifies which mode client has opened the file as                      
                     if(vector[fd].mode != WRITE && vector[fd].mode != RW) {
                         error= TECNICOFS_ERROR_INVALID_MODE;
-                        write(socketFd, &error, sizeof(error));
+                        writeIntValidate(socketFd, &error);
                         break;
                     }
 
                     iNumber = vector[fd].iNumber;
                     inode_set(iNumber, arg2, strlen(arg2));
 
-                    write(socketFd, &status, sizeof(status));
+                    writeIntValidate(socketFd, &status);
                     break;
                 case '0':
                     sessionActive = 0;
                     break;
                 default:
                     error = TECNICOFS_ERROR_INVALID_MODE;
-                    write(socketFd, &error, sizeof(error));
+                    writeIntValidate(socketFd, &error);
                     break;
             }
         }
@@ -412,7 +424,11 @@ void applyCommands(char *args) {
         }
     }
 
-    close(socketFd);
+    if(close(socketFd) < 0) {
+        perror("Error when closing socket fd");
+        exit(EXIT_FAILURE);
+    }
+
     return NULL;
 }
 
@@ -463,10 +479,6 @@ void acceptClients() {
             perror("Error joining slave thread");
             exit(EXIT_FAILURE);
         }
-    }
-
-    for(c = 0; c <= i; c++) {
-        close(fd[c]);
     }
 }
 

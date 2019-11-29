@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
 
     assert(tfsMount(argv[1]) == 0);
     assert(tfsMount(argv[1]) == TECNICOFS_ERROR_OPEN_SESSION);
-
+    
     assert(tfsCreate("abc", RW, READ) == 0);
     assert(tfsCreate("abc", RW, READ) == TECNICOFS_ERROR_FILE_ALREADY_EXISTS);
     assert(tfsCreate("bcd", READ, READ) == 0);

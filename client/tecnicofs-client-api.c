@@ -40,7 +40,7 @@ int tfsUnmount() {
         return TECNICOFS_ERROR_NO_OPEN_SESSION;   
     }
     
-    if(write(sockfd, "0", 2) < 0) {
+    if(write(sockfd, "0", sizeof(char) * 2) < 0) {
         return TECNICOFS_ERROR_OTHER;           
     }
 

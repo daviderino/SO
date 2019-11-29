@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <unistd.h>
 
 int main(int argc, char** argv) {
     if (argc != 2) {
@@ -17,6 +18,8 @@ int main(int argc, char** argv) {
     assert(tfsCreate("abc", RW, READ) == 0);
 
     assert(tfsRename("abc", "bcd") == 0);
+
+    sleep(3);
 
     int fd = -1;
     assert((fd = tfsOpen("bcd", RW)) == 0);
