@@ -186,7 +186,6 @@ void applyCommands(char *args) {
 
         if(read(socketFd, msg, BUFFSIZE) > 0) {
             sscanf(msg, "%c %s %s", &token, arg1, arg2);
-
             switch(token) {
                 case 'c':
                     if(lookup(fs,arg1) != -1) {
@@ -368,14 +367,14 @@ void applyCommands(char *args) {
 
                     int n;
 
-                    if((n = inode_get(iNumber, NULL, NULL, NULL, buffer, len -1)) < 0) {
+                    if((n = inode_get(iNumber, NULL, NULL, NULL, buffer, len - 1)) < 0) {
                         error = TECNICOFS_ERROR_OTHER;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
 
                     write(socketFd, &status, sizeof(int));
-                    write(socketFd, buffer, n);
+                    write(socketFd, buffer, n + 1);
 
                     break;
                 case 'w':
@@ -395,7 +394,6 @@ void applyCommands(char *args) {
                     }
 
                     iNumber = vector[fd].iNumber;
-
                     inode_set(iNumber, arg2, strlen(arg2));
 
                     write(socketFd, &status, sizeof(status));

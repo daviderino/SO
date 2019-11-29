@@ -19,7 +19,6 @@ int main(int argc, char** argv) {
     assert(tfsDelete("a") == 0);
 
     assert((fd = tfsClose(0)) == 0);
-    sleep(5);
 
     printf("Test: delete file that does not exist\n");
     assert(tfsDelete("b") == TECNICOFS_ERROR_FILE_NOT_FOUND);
