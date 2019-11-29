@@ -150,18 +150,18 @@ void applyCommands(char *args) {
 
  void *session(void *arg) {
     struct ucred ucred;
+    char token;
     char msg[BUFFSIZE];
     char arg1[STRSIZE];
     char arg2[STRSIZE];
-    char token;
     int error;
-    int i;
     int sessionActive = 1;
     int socketFd = *((int*)arg);
     unsigned int socklen = sizeof(int);
 
     input_t vector[5];
 
+    int i;
     for(int i = 0; i < 5; i++) {
         vector[i].flag = 0;
     }
@@ -401,10 +401,11 @@ void applyCommands(char *args) {
                     write(socketFd, &status, sizeof(status));
                     break;
                 case '0':
+                    sessionActive = 0;
+                    break;
                 default:
                     error = TECNICOFS_ERROR_INVALID_MODE;
                     write(socketFd, &error, sizeof(error));
-                    sessionActive = 0;
                     break;
             }
         }
@@ -427,7 +428,6 @@ void acceptClients() {
     pthread_t *slaves = (pthread_t*) malloc(num_threads * sizeof(pthread_t));
 
     while(1) { 
-        sigset_t set;
         client_dimension = sizeof(client_addr);
 
         int newsockfd = accept(global_sockfd, &client_addr, &client_dimension);
@@ -439,6 +439,7 @@ void acceptClients() {
             break;
         }
 
+        sigset_t set;
         sigemptyset(&set);
 
         if(pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
@@ -475,15 +476,6 @@ void handle_sigint() {
 
 void setSignal() {
     signal(SIGINT, handle_sigint);
-    //struct sigaction signal;
-    //signal.sa_handler = handle_sigint;
-    //signal.sa_flags = 0;
-    //sigemptyset(&signal.sa_mask);
-    //
-    //if(sigaction(SIGINT, &signal, NULL)) {
-    //    perror("Error while setting SIGINT\n");
-    //    exit(EXIT_FAILURE);
-    //}
 }
 
 int main(int argc, char* argv[]) {
@@ -504,10 +496,6 @@ int main(int argc, char* argv[]) {
     TIMER_READ(startTime);
     acceptClients();
     TIMER_READ(endTime);
-
-    //if(serverSocketUnmount() != 0) {
-    //    perror("Error when unmounting server socket");
-    //}
     
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", TIMER_DIFF_SECONDS(startTime, endTime));
     

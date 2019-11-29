@@ -32,12 +32,12 @@ int serverSocketMount(struct sockaddr_un server_addr, char *name, int *length) {
 
 int serverSocketUnmount() {
     if(sockfd == -1) {
-        perror("Error when unbinding server socket");
+        perror("Error when unmounting server socket");
         return -1;
     }
 
     if(close(sockfd) != 0) {
-        perror("Error when unbinding server socket");
+        perror("Error when unmounting server socket");
         return -1;
     }
 

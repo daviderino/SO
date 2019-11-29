@@ -14,9 +14,14 @@ int tfsMount(char *address) {
     int server_len;
     struct sockaddr_un server_addr;
     
+    if(sockfd != -1) {
+        return TECNICOFS_ERROR_OPEN_SESSION;
+    }
+
     if ((sockfd = socket(AF_UNIX, SOCK_STREAM, 0) ) < 0) {
         return TECNICOFS_ERROR_OTHER;
     }
+
 
     bzero((char*) &server_addr, sizeof(server_addr));
     server_addr.sun_family = AF_UNIX;
@@ -42,6 +47,8 @@ int tfsUnmount() {
     if(close(sockfd) != 0) {
         return TECNICOFS_ERROR_OTHER;   
     }
+
+    sockfd = -1;
 
     return 0;
 }
