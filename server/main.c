@@ -29,15 +29,11 @@ typedef struct input_t {
 
 
 tecnicofs* fs;
-pthread_mutex_t commandsLock;
-
-struct sockaddr_un server_addr;
-
 int global_sockfd;
-int canAccept = 1;
-
 sem_t semProducer;
 sem_t semConsumer;
+pthread_mutex_t commandsLock;
+struct sockaddr_un server_addr;
 
 char inputCommands[MAX_COMMANDS][MAX_INPUT_SIZE];
 char *global_socketname = NULL;
@@ -198,7 +194,6 @@ void applyCommands(char *args) {
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
-                    
 
                     if(strlen(arg2) != 2) {
                         error = TECNICOFS_ERROR_OTHER;
@@ -374,7 +369,7 @@ void applyCommands(char *args) {
                     int n;
 
                     if((n = inode_get(iNumber, NULL, NULL, NULL, buffer, len -1)) < 0) {
-                        error= TECNICOFS_ERROR_OTHER;
+                        error = TECNICOFS_ERROR_OTHER;
                         write(socketFd, &error, sizeof(error));
                         break;
                     }
@@ -406,13 +401,15 @@ void applyCommands(char *args) {
                     write(socketFd, &status, sizeof(status));
                     break;
                 case '0':
-                    sessionActive = 0;
-                    break;
                 default:
                     error = TECNICOFS_ERROR_INVALID_MODE;
                     write(socketFd, &error, sizeof(error));
+                    sessionActive = 0;
                     break;
             }
+        }
+        else {
+            sessionActive = 0;
         }
     }
 
@@ -436,7 +433,7 @@ void acceptClients() {
         int newsockfd = accept(global_sockfd, &client_addr, &client_dimension);
         fd[i] = newsockfd;
 
-        if(!canAccept) {
+        if(fd[i] == -1) {
             i--;
             close(newsockfd);
             break;
@@ -473,19 +470,20 @@ void acceptClients() {
 }
 
 void handle_sigint() {
-    canAccept = 0;
+    serverSocketUnmount();
 }
 
 void setSignal() {
-    struct sigaction signal;
-    signal.sa_handler = handle_sigint;
-    signal.sa_flags = 0;
-    sigemptyset(&signal.sa_mask);
-    
-    if(sigaction(SIGINT, &signal, NULL)) {
-        perror("Error while setting SIGINT\n");
-        exit(EXIT_FAILURE);
-    }
+    signal(SIGINT, handle_sigint);
+    //struct sigaction signal;
+    //signal.sa_handler = handle_sigint;
+    //signal.sa_flags = 0;
+    //sigemptyset(&signal.sa_mask);
+    //
+    //if(sigaction(SIGINT, &signal, NULL)) {
+    //    perror("Error while setting SIGINT\n");
+    //    exit(EXIT_FAILURE);
+    //}
 }
 
 int main(int argc, char* argv[]) {
@@ -507,9 +505,9 @@ int main(int argc, char* argv[]) {
     acceptClients();
     TIMER_READ(endTime);
 
-    if(serverSocketUnmount() != 0) {
-        perror("Error when unmounting server socket");
-    }
+    //if(serverSocketUnmount() != 0) {
+    //    perror("Error when unmounting server socket");
+    //}
     
     fprintf(stdout, "TecnicoFS completed in %.4f seconds.\n", TIMER_DIFF_SECONDS(startTime, endTime));
     

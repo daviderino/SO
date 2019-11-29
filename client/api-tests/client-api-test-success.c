@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
     assert(tfsMount(argv[1]) == 0);
 
-    assert(tfsCreate("abc", RW, READ) == 0 );
+    assert(tfsCreate("abc", RW, READ) == 2);
 
     assert(tfsRename("abc", "bcd") == 0);
 
