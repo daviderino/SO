@@ -19,8 +19,6 @@ int main(int argc, char** argv) {
 
     assert(tfsRename("abc", "bcd") == 0);
 
-    sleep(3);
-
     int fd = -1;
     assert((fd = tfsOpen("bcd", RW)) == 0);
 

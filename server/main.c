@@ -22,7 +22,6 @@
 
 typedef struct input_t {
     int iNumber;
-    // int fd;
     int mode;
     int flag;   //file opened:flag=1
 } input_t;
@@ -156,11 +155,11 @@ void writeIntValidate(int fd, int *val) {
 }
 
  void *session(void *arg) {
-    struct ucred ucred;
     char token;
     char msg[BUFFSIZE];
     char arg1[STRSIZE];
     char arg2[STRSIZE];
+    struct ucred ucred;
     int error;
     int sessionActive = 1;
     int socketFd = *((int*)arg);
@@ -248,8 +247,8 @@ void writeIntValidate(int fd, int *val) {
 
                     break;
                 case 'r':
-                    iNumber=lookup(fs,arg1);
-                    iNumberNew=lookup(fs,arg2);
+                    iNumber = lookup(fs,arg1);
+                    iNumberNew = lookup(fs,arg2);
 
                     if(iNumber == -1) {
                         error = TECNICOFS_ERROR_FILE_NOT_FOUND;
@@ -480,6 +479,8 @@ void acceptClients() {
             exit(EXIT_FAILURE);
         }
     }
+
+    free(slaves);
 }
 
 void handle_sigint() {
@@ -517,5 +518,6 @@ int main(int argc, char* argv[]) {
 
     mutex_destroy(&commandsLock);
     free_tecnicofs(fs);
+    inode_table_destroy();
     exit(EXIT_SUCCESS);
 }
