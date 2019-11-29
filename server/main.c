@@ -433,12 +433,12 @@ void acceptClients() {
 
         if(fd[i] == -1) {
             i--;
-            close(newsockfd);
             break;
         }
 
         sigset_t set;
         sigemptyset(&set);
+        sigaddset(&set, SIGINT);
 
         if(pthread_sigmask(SIG_BLOCK, &set, NULL) != 0) {
             perror("Error when setting sigmask to slave thread");
@@ -449,6 +449,8 @@ void acceptClients() {
             perror("Error when creating slave thread");
             exit(EXIT_FAILURE);
         }
+
+        pthread_sigmask(SIG_UNBLOCK, &set, NULL);
 
         if(i == num_threads) {
             num_threads = num_threads + 4;
