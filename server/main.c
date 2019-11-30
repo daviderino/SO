@@ -190,7 +190,9 @@ void writeIntValidate(int fd, int *val) {
         int iNumberNew = 0;
         char buffer[STRSIZE];
 
-        if(read(socketFd, msg, BUFFSIZE) > 0) {
+        int n = read(socketFd, msg, BUFFSIZE);
+
+        if(n > 0) {
             sscanf(msg, "%c %s %s", &token, arg1, arg2);
             switch(token) {
                 case 'c':
@@ -418,8 +420,12 @@ void writeIntValidate(int fd, int *val) {
                     break;
             }
         }
-        else {
+        else if (n == 0) {
             sessionActive = 0;
+        }
+        else {
+            perror("Error when calling read()");
+            exit(EXIT_FAILURE);
         }
     }
 
