@@ -40,6 +40,7 @@ void free_tecnicofs(tecnicofs* fs){
 	}
 	
 	free(fs->hashTable);
+	free(fs->bstLock);
 	free(fs);
 }
 

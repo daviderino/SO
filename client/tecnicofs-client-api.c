@@ -54,7 +54,7 @@ int tfsUnmount() {
 }
 
 int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
-    char buffer[BUFFSIZE];
+    char buffer[BUFFSIZE] = {'\0'};
     int ret;
 
     sprintf(buffer, "c %s %d%d", filename, ownerPermissions, othersPermissions);
@@ -71,7 +71,7 @@ int tfsCreate(char *filename, int ownerPermissions, int othersPermissions) {
 }
 
 int tfsDelete(char *filename) {
-    char buffer[BUFFSIZE];
+    char buffer[BUFFSIZE] = {'\0'};
     int ret;
 
     sprintf(buffer, "d %s", filename);
@@ -88,7 +88,7 @@ int tfsDelete(char *filename) {
 }
 
 int tfsRename(char *filenameOld, char *filenameNew) {
-    char buffer[BUFFSIZE];
+    char buffer[BUFFSIZE] = {'\0'};
     int ret;
 
     sprintf(buffer, "r %s %s", filenameOld, filenameNew);
@@ -105,7 +105,7 @@ int tfsRename(char *filenameOld, char *filenameNew) {
 }
 
 int tfsOpen(char *filename, int mode){
-    char buffer[BUFFSIZE];
+    char buffer[BUFFSIZE] = {'\0'};
     int ret;
 
     sprintf(buffer, "o %s %d", filename, mode);
@@ -122,7 +122,7 @@ int tfsOpen(char *filename, int mode){
 }
 
 int tfsClose(int fd){
-    char buffer[BUFFSIZE];
+    char buffer[BUFFSIZE] = {'\0'};
     int ret;
 
     sprintf(buffer, "x %d", fd);
@@ -139,7 +139,7 @@ int tfsClose(int fd){
 }
 
 int tfsRead(int fd, char *buffer, int len){
-    char msg[BUFFSIZE];
+    char msg[BUFFSIZE] = {'\0'};
     int n;
     int ret;
 
@@ -165,7 +165,7 @@ int tfsRead(int fd, char *buffer, int len){
 }
 
 int tfsWrite(int fd, char *buffer, int len) {
-    char msg[BUFFSIZE];
+    char msg[BUFFSIZE] = {'\0'};
     int ret;
     int n = strlen(buffer);
 

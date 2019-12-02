@@ -156,14 +156,14 @@ void writeIntValidate(int fd, int *val) {
 
  void *session(void *arg) {
     char token;
-    char msg[BUFFSIZE];
-    char arg1[STRSIZE];
-    char arg2[STRSIZE];
+    char msg[BUFFSIZE] = {'\0'};
+    char arg1[STRSIZE] = {'\0'};
+    char arg2[STRSIZE] = {'\0'};
     struct ucred ucred;
     int error;
     int sessionActive = 1;
     int socketFd = *((int*)arg);
-    unsigned int socklen = sizeof(int);
+    unsigned int socklen = sizeof(struct ucred);
 
     input_t vector[5];
 
@@ -181,14 +181,14 @@ void writeIntValidate(int fd, int *val) {
         permission othersPerm;
         permission ownerPerm;
         uid_t owner;
-        int len;
-        int fd;
-        int mode;
+        int len = -1;
+        int fd = -1;
+        int mode = -1;
         int status = 0;
         int counter = 0;
         int iNumber = -1;
         int iNumberNew = 0;
-        char buffer[STRSIZE];
+        char buffer[STRSIZE] = {0};
 
         int n = read(socketFd, msg, BUFFSIZE);
 
@@ -357,7 +357,7 @@ void writeIntValidate(int fd, int *val) {
 
                 case 'l':
                     fd = (int)strtol(arg1, NULL, 10);
-                    len = (int)strtol(arg2, NULL,10);
+                    len = (int)strtol(arg2, NULL, 10);
 
                     if(vector[fd].flag == 0) {
                         error= TECNICOFS_ERROR_FILE_NOT_OPEN;
