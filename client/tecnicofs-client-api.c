@@ -13,6 +13,11 @@ int sockfd = -1;
 int tfsMount(char *address) {
     int server_len;
     struct sockaddr_un server_addr;
+
+    if(strlen(address) == 0) {
+        printf("Usage: ./program socket_name");
+        exit(EXIT_FAILURE);
+    }
     
     if(sockfd != -1) {
         return TECNICOFS_ERROR_OPEN_SESSION;
